@@ -1,0 +1,114 @@
+# https://taskfile.dev
+version: "3"
+
+vars:
+  PACKER_BASE: packer/proxmox
+
+env:
+  # Proxmox credentials (set these in your environment or .env file)
+  # PKR_VAR_proxmox_api_url: https://your-proxmox:8006/api2/json
+  # PKR_VAR_proxmox_api_token_id: user@pam!token-name
+  # PKR_VAR_proxmox_api_token_secret: your-token-secret
+  # PKR_VAR_proxmox_node: pve
+  # PKR_VAR_proxmox_iso_file: local:iso/debian-12.x.x-amd64-netinst.iso
+  # PKR_VAR_ssh_password: packer
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  # ============================================================
+  # debian-gateway template
+  # ============================================================
+  gateway:init:
+    desc: Initialize Packer plugins for debian-gateway
+    dir: "{{.PACKER_BASE}}/debian-gateway"
+    cmds:
+      - packer init .
+
+  gateway:fmt:
+    desc: Format Packer HCL files for debian-gateway
+    dir: "{{.PACKER_BASE}}/debian-gateway"
+    cmds:
+      - packer fmt .
+
+  gateway:validate:
+    desc: Validate debian-gateway template
+    dir: "{{.PACKER_BASE}}/debian-gateway"
+    deps:
+      - gateway:init
+    cmds:
+      - packer validate .
+
+  gateway:build:
+    desc: Build the Debian gateway VM template
+    dir: "{{.PACKER_BASE}}/debian-gateway"
+    deps:
+      - gateway:validate
+    cmds:
+      - packer build .
+
+  gateway:build-debug:
+    desc: Build debian-gateway with debug output
+    dir: "{{.PACKER_BASE}}/debian-gateway"
+    deps:
+      - gateway:init
+    env:
+      PACKER_LOG: "1"
+    cmds:
+      - packer build -debug .
+
+  # ============================================================
+  # Generic packer commands (requires TEMPLATE variable)
+  # Usage: task packer:build TEMPLATE=debian-gateway
+  # ============================================================
+  packer:init:
+    desc: "Initialize Packer plugins (usage: task packer:init TEMPLATE=xxx)"
+    dir: "{{.PACKER_BASE}}/{{.TEMPLATE}}"
+    requires:
+      vars: [TEMPLATE]
+    cmds:
+      - packer init .
+
+  packer:validate:
+    desc: "Validate template (usage: task packer:validate TEMPLATE=xxx)"
+    dir: "{{.PACKER_BASE}}/{{.TEMPLATE}}"
+    requires:
+      vars: [TEMPLATE]
+    deps:
+      - task: packer:init
+        vars: { TEMPLATE: "{{.TEMPLATE}}" }
+    cmds:
+      - packer validate .
+
+  packer:build:
+    desc: "Build template (usage: task packer:build TEMPLATE=xxx)"
+    dir: "{{.PACKER_BASE}}/{{.TEMPLATE}}"
+    requires:
+      vars: [TEMPLATE]
+    deps:
+      - task: packer:validate
+        vars: { TEMPLATE: "{{.TEMPLATE}}" }
+    cmds:
+      - packer build .
+
+  # ============================================================
+  # Utility tasks
+  # ============================================================
+  clean:
+    desc: Clean all Packer caches
+    cmds:
+      - cmd: rm -rf packer_cache
+        ignore_error: true
+      - cmd: rm -rf {{.PACKER_BASE}}/*/packer_cache
+        ignore_error: true
+
+  list-templates:
+    desc: List available Packer templates
+    cmds:
+      - cmd: ls -1 {{.PACKER_BASE}}/
+        platforms: [linux, darwin]
+      - cmd: dir /B {{.PACKER_BASE}}
+        platforms: [windows]

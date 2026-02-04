@@ -1,0 +1,41 @@
+# Packer files
+*.pkrvars.hcl
+*.auto.pkrvars.hcl
+packer_cache/
+packer-manifest.json
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Secrets
+*.pem
+*.key
+*secret*
+*credential*
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Terraform (for future use)
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Build artifacts
+dist/
+build/

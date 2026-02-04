@@ -1,0 +1,3 @@
+[tools]
+packer = 'latest'
+task = 'latest'
