@@ -27,11 +27,12 @@ task = 'latest'
 task --list
 
 # mihomo-gateway 模板专用命令
-task gateway:init       # 初始化 Packer 插件
-task gateway:fmt        # 格式化 HCL 文件
-task gateway:validate   # 验证模板
-task gateway:build      # 构建 VM 模板
-task gateway:build-debug # 调试模式构建
+task gateway:init            # 初始化 Packer 插件
+task gateway:fmt             # 格式化 HCL 文件
+task gateway:validate        # 验证模板
+task gateway:build           # 直接在 Proxmox 构建 (需 API)
+task gateway:build-local     # 本地 QEMU 构建 (生成 qcow2)
+task gateway:download-mihomo # 预下载 mihomo 二进制 (离线构建用)
 
 # 通用 Packer 命令 (用于任意模板)
 task packer:init TEMPLATE=mihomo-gateway
@@ -48,6 +49,7 @@ task list-templates     # 列出所有模板
 ```
 iac/
 ├── Taskfile.yml              # 统一构建入口
+├── mise.toml                 # 工具版本 + .env 自动加载
 ├── .env.example              # 环境变量模板
 ├── packer/proxmox/           # Proxmox VM 模板
 │   └── <template-name>/      # 每个模板自包含
