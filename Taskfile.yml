@@ -8,23 +8,18 @@ tasks:
       - task --list
 
   # ============================================================
-  # NixOS - Build
+  # Build
   # ============================================================
   build:
-    desc: Build all NixOS configurations (requires Nix)
+    desc: Build NixOS system configuration
     cmds:
-      - nix build .#nixosConfigurations.mihomo-gateway.config.system.build.toplevel
-
-  gateway:build:
-    desc: Build mihomo-gateway system
-    cmds:
-      - nix build .#nixosConfigurations.mihomo-gateway.config.system.build.toplevel
+      - nix build .#default
       - echo "Output -> ./result"
 
-  gateway:tarball:
-    desc: Build mihomo-gateway LXC tarball (CI friendly, no privilege)
+  tarball:
+    desc: Build LXC tarball (CI friendly, no privilege required)
     cmds:
-      - nix build .#mihomo-gateway-tarball
+      - nix build .#tarball
       - echo "Output -> ./result/tarball/*.tar.xz"
 
   # ============================================================
@@ -57,8 +52,3 @@ tasks:
     desc: Clean build outputs
     cmds:
       - rm -rf result result-*
-
-  list:
-    desc: List available NixOS configurations
-    cmds:
-      - nix flake show --json | jq -r '.nixosConfigurations | keys[]'
