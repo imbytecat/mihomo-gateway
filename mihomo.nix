@@ -22,7 +22,6 @@ let
     # Mihomo Fallback Configuration
     # This is used when subscription is unavailable
 
-    mixed-port: 7890
     tproxy-port: ${toString mihomoPort}
     routing-mark: ${toString routingMark}
 
@@ -195,93 +194,64 @@ in
     };
   };
 
-  # ============================================\r
-  # Kernel Parameters (sysctl)\r
-  # ============================================\r
-  boot.kernel.sysctl = {\r
-    # Enable IP forwarding\r
-    "net.ipv4.ip_forward" = 1;\r
-\r
-    # Disable reverse path filtering (required for TPROXY)\r
-    "net.ipv4.conf.all.rp_filter" = 0;\r
-    "net.ipv4.conf.default.rp_filter" = 0;\r
-\r
-    # Required for TPROXY to work correctly\r
-    "net.ipv4.conf.all.src_valid_mark" = 1;\r
-    "net.ipv4.conf.default.src_valid_mark" = 1;\r
-\r
-    # Disable ICMP redirects\r
-    "net.ipv4.conf.all.send_redirects" = 0;\r
-    "net.ipv4.conf.default.send_redirects" = 0;\r
-  };\r
+  # ============================================
+  # Kernel Parameters (sysctl)
+  # ============================================
+  boot.kernel.sysctl = {
+    # Enable IP forwarding
+    "net.ipv4.ip_forward" = 1;
 
-  # ============================================\r
-  # nftables TPROXY Rules\r
-  # ============================================\r
-  networking.nftables = {\r
-    enable = true;\r
-    ruleset = ''\r
-      table inet mihomo {\r
-        # IPv4 bypass addresses\r
-        set bypass4 {\r
-          type ipv4_addr\r
-          flags interval\r
-          elements = {\r
-            0.0.0.0/8,         # Current network\r
-            10.0.0.0/8,        # Private Class A\r
-            100.64.0.0/10,     # CGNAT\r
-            127.0.0.0/8,       # Loopback\r
-            169.254.0.0/16,    # Link-local\r
-            172.16.0.0/12,     # Private Class B\r
-            192.168.0.0/16,    # Private Class C\r
-            224.0.0.0/4,       # Multicast\r
-            240.0.0.0/4,       # Reserved\r
-            255.255.255.255/32 # Broadcast\r
-          }\r
-        }\r
-\r
-        # DNS redirect: redirect all DNS queries to mihomo\r
-        chain prerouting_dns {\r
-          type nat hook prerouting priority dstnat; policy accept;\r
-          fib daddr type local return\r
-          meta l4proto { tcp, udp } th dport 53 redirect to :53\r
-        }\r
-\r
-        # TPROXY for TCP and UDP (except DNS which is already handled)\r
-        chain prerouting {\r
-          type filter hook prerouting priority mangle; policy accept;\r
-          # Bypass mihomo's own traffic (routing-mark)\r
-          meta mark ${toString routingMark} return\r
-          # Bypass local/broadcast/multicast destinations\r
-          fib daddr type { local, broadcast, multicast } return\r
-          # Bypass private addresses\r
-          ip daddr @bypass4 return\r
-          # Skip DNS (already redirected to mihomo:53)\r
-          meta l4proto { tcp, udp } th dport 53 return\r
-          # TPROXY everything else\r
-          meta l4proto { tcp, udp } tproxy to :${toString mihomoPort} meta mark set ${toString fwmark}\r
-        }\r
-\r
-        # Handle locally generated traffic\r
-        chain output {\r
-          type route hook output priority mangle; policy accept;\r
-          # Bypass loopback\r
-          oifname "lo" return\r
-          # Bypass mihomo's own traffic\r
-          meta mark ${toString routingMark} return\r
-          # Bypass local destinations\r
-          fib daddr type { local, broadcast, multicast } return\r
-          # Bypass private addresses\r
-          ip daddr @bypass4 return\r
-          # Skip DNS and mihomo ports\r
-          meta l4proto { tcp, udp } th dport 53 return\r
-          meta l4proto tcp th sport ${toString mihomoPort} return\r
-          # Mark for policy routing\r
-          meta l4proto { tcp, udp } meta mark set ${toString fwmark}\r
-        }\r
-      }\r
-    '';\r
-  };\r
+    # Disable reverse path filtering (required for TPROXY)
+    "net.ipv4.conf.all.rp_filter" = 0;
+    "net.ipv4.conf.default.rp_filter" = 0;
+
+    # Required for TPROXY to work correctly
+    "net.ipv4.conf.all.src_valid_mark" = 1;
+    "net.ipv4.conf.default.src_valid_mark" = 1;
+
+    # Disable ICMP redirects
+    "net.ipv4.conf.all.send_redirects" = 0;
+    "net.ipv4.conf.default.send_redirects" = 0;
+  };
+
+  # ============================================
+  # nftables TPROXY Rules (Simplified KISS)
+  # ============================================
+  networking.nftables = {
+    enable = true;
+    ruleset = ''
+      table inet mihomo {
+        # IPv4 bypass addresses
+        set bypass4 {
+          type ipv4_addr
+          flags interval
+          elements = {
+            10.0.0.0/8,        # Private Class A
+            100.64.0.0/10,     # CGNAT
+            127.0.0.0/8,       # Loopback
+            169.254.0.0/16,    # Link-local
+            172.16.0.0/12,     # Private Class B
+            192.168.0.0/16,    # Private Class C
+            224.0.0.0/4,       # Multicast
+            240.0.0.0/4        # Reserved
+          }
+        }
+
+        # TPROXY for TCP and UDP
+        chain prerouting {
+          type filter hook prerouting priority mangle; policy accept;
+          # Bypass mihomo's own traffic (routing-mark)
+          meta mark ${toString routingMark} return
+          # Bypass local/broadcast/multicast destinations
+          fib daddr type { local, broadcast, multicast } return
+          # Bypass private addresses
+          ip daddr @bypass4 return
+          # TPROXY everything else
+          meta l4proto { tcp, udp } tproxy to :${toString mihomoPort} meta mark set ${toString fwmark}
+        }
+      }
+    '';
+  };
 
   # ============================================
   # Policy Routing (for TPROXY)
