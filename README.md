@@ -39,7 +39,7 @@ echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
 ## 快速开始
 
 ```bash
-mise install         # 安装 task
+nix develop          # 进入开发 shell (包含 task)
 task tarball         # 构建 LXC tarball
 ```
 
@@ -76,6 +76,5 @@ mihomo-gateway/
 ├── flake.lock          # 版本锁定
 ├── configuration.nix   # NixOS 配置
 ├── mihomo.nix          # Mihomo TPROXY 模块
-├── Taskfile.yml        # 构建任务
-└── mise.toml           # 工具版本
+└── Taskfile.yml        # 构建任务
 ```

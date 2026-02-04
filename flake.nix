@@ -22,7 +22,7 @@
 
     # Development shell
     devShells.${system}.default = pkgs.mkShell {
-      packages = with pkgs; [ nil nixfmt ];
+      packages = with pkgs; [ nil nixfmt go-task ];
     };
 
     # Formatter

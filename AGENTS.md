@@ -11,13 +11,10 @@
 
 ## 工具链
 
-通过 `mise` 管理工具版本：
-```toml
-[tools]
-task = 'latest'
+所有开发工具通过 `nix develop` 获取：
 
-[env]
-_.file = ".env"
+```bash
+nix develop          # 进入开发 shell (包含 nil, nixfmt, task)
 ```
 
 NixOS 构建需要 Nix，可在 Linux/macOS/WSL2 运行。
@@ -49,8 +46,7 @@ mihomo-gateway/
 ├── flake.lock          # 版本锁定
 ├── configuration.nix   # NixOS 配置
 ├── mihomo.nix          # Mihomo TPROXY 模块
-├── Taskfile.yml        # 构建任务
-└── mise.toml           # 工具版本
+└── Taskfile.yml        # 构建任务
 ```
 
 ## 代码风格
