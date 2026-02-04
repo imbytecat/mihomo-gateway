@@ -1,9 +1,6 @@
 # https://taskfile.dev
 version: "3"
 
-vars:
-  MKOSI_BASE: mkosi
-
 tasks:
   default:
     desc: Show available tasks
@@ -11,39 +8,63 @@ tasks:
       - task --list
 
   # ============================================================
-  # mkosi - mihomo-gateway
+  # NixOS - Build
   # ============================================================
-  gateway:download:
-    desc: Download Mihomo binary
-    dir: "{{.MKOSI_BASE}}/mihomo-gateway"
+  build:
+    desc: Build all NixOS configurations (requires Nix)
     cmds:
-      - bash download-mihomo.sh
+      - nix build .#nixosConfigurations.mihomo-gateway.config.system.build.toplevel
 
   gateway:build:
-    desc: Build mihomo-gateway image (requires Linux/WSL2)
-    dir: "{{.MKOSI_BASE}}/mihomo-gateway"
+    desc: Build mihomo-gateway system
     cmds:
-      - mkosi build
+      - nix build .#nixosConfigurations.mihomo-gateway.config.system.build.toplevel
+      - echo "Output -> ./result"
 
-  gateway:clean:
-    desc: Clean mihomo-gateway build output
-    dir: "{{.MKOSI_BASE}}/mihomo-gateway"
+  gateway:tarball:
+    desc: Build mihomo-gateway tarball (CI friendly, no privilege)
     cmds:
-      - mkosi clean
+      - nix build .#mihomo-gateway-tarball
+      - echo "Output -> ./result/tarball/*.tar.xz"
+
+  gateway:image:
+    desc: Build mihomo-gateway disk image (requires KVM/privileged)
+    cmds:
+      - nix build .#mihomo-gateway-image
+      - echo "Output -> ./result/*.raw"
 
   # ============================================================
-  # Utility tasks
+  # Development
+  # ============================================================
+  dev:
+    desc: Enter development shell with Nix tools
+    cmds:
+      - nix develop
+
+  fmt:
+    desc: Format all Nix files
+    cmds:
+      - nix fmt
+
+  check:
+    desc: Check flake and evaluate configurations
+    cmds:
+      - nix flake check
+
+  update:
+    desc: Update flake.lock
+    cmds:
+      - nix flake update
+
+  # ============================================================
+  # Utility
   # ============================================================
   clean:
-    desc: Clean all build outputs
+    desc: Clean build outputs
     cmds:
-      - cmd: rm -rf {{.MKOSI_BASE}}/*/output
-        ignore_error: true
+      - rm -rf result result-*
 
   list:
-    desc: List available templates
+    desc: List available NixOS configurations
     cmds:
-      - cmd: ls -1 {{.MKOSI_BASE}}/
-        platforms: [linux, darwin]
-      - cmd: dir /B {{.MKOSI_BASE}}
-        platforms: [windows]
+      - nix flake show --json | jq -r '.nixosConfigurations | keys[]'

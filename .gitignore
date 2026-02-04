@@ -1,8 +1,6 @@
-# mkosi
-mkosi/*/output/
-
-# Pre-downloaded binaries
-mkosi/*/mkosi.extra/usr/local/bin/mihomo
+# Nix
+result
+result-*
 
 # Environment files
 .env
