@@ -5,6 +5,46 @@ let
   mihomoPort = 7894;      # TPROXY port
   routingMark = 6666;     # Routing mark for bypass
   fwmark = 1;             # Fwmark for policy routing
+
+  # Mihomo configuration file
+  mihomoConfig = pkgs.writeText "mihomo-config.yaml" ''
+    # Mihomo Configuration Template
+    # Edit this file and add your proxy configuration
+
+    mixed-port: 7890
+    tproxy-port: ${toString mihomoPort}
+    routing-mark: ${toString routingMark}
+
+    allow-lan: true
+    bind-address: "*"
+    mode: rule
+    log-level: info
+
+    dns:
+      enable: true
+      listen: 0.0.0.0:53
+      enhanced-mode: fake-ip
+      fake-ip-range: 198.18.0.1/16
+      default-nameserver:
+        - 8.8.8.8
+      nameserver:
+        - https://dns.alidns.com/dns-query
+
+    proxies: []
+
+    proxy-groups:
+      - name: PROXY
+        type: select
+        proxies:
+          - DIRECT
+
+    rules:
+      - IP-CIDR,127.0.0.0/8,DIRECT
+      - IP-CIDR,10.0.0.0/8,DIRECT
+      - IP-CIDR,172.16.0.0/12,DIRECT
+      - IP-CIDR,192.168.0.0/16,DIRECT
+      - MATCH,DIRECT
+  '';
 in
 {
   # ============================================
@@ -12,8 +52,7 @@ in
   # ============================================
   services.mihomo = {
     enable = true;
-    # configFile will be managed separately (contains secrets)
-    # Use: /etc/mihomo/config.yaml
+    configFile = mihomoConfig;
   };
 
   # Override systemd service for TPROXY capabilities
@@ -106,46 +145,4 @@ in
       ];
     };
   };
-
-  # ============================================
-  # Mihomo Config Template
-  # ============================================
-  environment.etc."mihomo/config.yaml".text = ''
-    # Mihomo Configuration Template
-    # Edit this file and add your proxy configuration
-
-    mixed-port: 7890
-    tproxy-port: ${toString mihomoPort}
-    routing-mark: ${toString routingMark}
-
-    allow-lan: true
-    bind-address: "*"
-    mode: rule
-    log-level: info
-
-    dns:
-      enable: true
-      listen: 0.0.0.0:53
-      enhanced-mode: fake-ip
-      fake-ip-range: 198.18.0.1/16
-      default-nameserver:
-        - 8.8.8.8
-      nameserver:
-        - https://dns.alidns.com/dns-query
-
-    proxies: []
-
-    proxy-groups:
-      - name: PROXY
-        type: select
-        proxies:
-          - DIRECT
-
-    rules:
-      - IP-CIDR,127.0.0.0/8,DIRECT
-      - IP-CIDR,10.0.0.0/8,DIRECT
-      - IP-CIDR,172.16.0.0/12,DIRECT
-      - IP-CIDR,192.168.0.0/16,DIRECT
-      - MATCH,DIRECT
-  '';
 }
