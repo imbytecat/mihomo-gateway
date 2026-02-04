@@ -14,7 +14,7 @@ let
   # Paths
   configDir = "/etc/mihomo";
   configFile = "${configDir}/config.yaml";
-  envFile = "${configDir}/subscription.env";
+  envFile = "${configDir}/mihomo.env";
   tempConfig = "/tmp/mihomo-new.yaml";
 
   # Fallback config (used when no subscription or download fails)

@@ -56,8 +56,8 @@ task tarball         # 构建 LXC tarball
 创建环境变量文件：
 
 ```bash
-echo 'SUBSCRIPTION_URL=https://your-subscription-url' > /etc/mihomo/subscription.env
-chmod 600 /etc/mihomo/subscription.env
+echo 'SUBSCRIPTION_URL=https://your-subscription-url' > /etc/mihomo/mihomo.env
+chmod 600 /etc/mihomo/mihomo.env
 ```
 
 ### 服务说明
