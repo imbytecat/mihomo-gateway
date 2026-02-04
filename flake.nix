@@ -20,13 +20,9 @@
 
     # Build outputs
     packages.${system} = {
-      # Tarball (no privilege required - CI friendly)
+      # LXC tarball (no privilege required - CI friendly)
       mihomo-gateway-tarball = 
         self.nixosConfigurations.mihomo-gateway.config.system.build.tarball;
-      
-      # VM image (requires KVM/privileged)
-      mihomo-gateway-image = 
-        self.nixosConfigurations.mihomo-gateway.config.system.build.image;
     };
 
     # Development shell

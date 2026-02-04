@@ -4,44 +4,12 @@
 {
   imports = [
     ./mihomo.nix
-    # Tarball output (no privilege required)
-    "${modulesPath}/installer/cd-dvd/channel.nix"
-    # VM image format modules (requires privilege)
-    "${modulesPath}/image/repart.nix"
+    # LXC container support (no privilege required)
+    "${modulesPath}/virtualisation/lxc-container.nix"
   ];
 
   # System
   system.stateVersion = "24.11";
-
-  # Image configuration
-  image.repart = {
-    name = "mihomo-gateway";
-    partitions = {
-      "esp" = {
-        contents = {
-          "/EFI/BOOT/BOOT*.EFI".source = "${config.system.build.toplevel}/EFI/BOOT/";
-        };
-        repartConfig = {
-          Type = "esp";
-          Format = "vfat";
-          SizeMinBytes = "256M";
-        };
-      };
-      "root" = {
-        storePaths = [ config.system.build.toplevel ];
-        repartConfig = {
-          Type = "root";
-          Format = "ext4";
-          Label = "nixos";
-          Minimize = "guess";
-        };
-      };
-    };
-  };
-
-  # Boot
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = false;
 
   # Networking
   networking = {

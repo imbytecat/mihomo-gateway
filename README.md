@@ -1,6 +1,6 @@
 # IaC - Infrastructure as Code
 
-个人 IaC 仓库，使用 **NixOS Flakes** 构建 VM 镜像。
+个人 IaC 仓库，使用 **NixOS Flakes** 构建 LXC 容器镜像。
 
 ## 环境准备
 
@@ -19,13 +19,25 @@ wsl -d NixOS
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh
 ```
 
+### Arch Linux
+
+```bash
+sudo pacman -S nix
+sudo systemctl enable --now nix-daemon
+sudo usermod -aG nixbld $USER
+# 重新登录
+
+# 启用 Flakes
+mkdir -p ~/.config/nix
+echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+```
+
 ## 快速开始
 
 ```bash
 mise install                    # 安装 task
 task gateway:build              # 构建系统配置
-task gateway:tarball            # 构建 tarball (CI 友好)
-task gateway:image              # 构建磁盘镜像 (需要 KVM)
+task gateway:tarball            # 构建 LXC tarball
 ```
 
 ## NixOS 主机
@@ -35,7 +47,7 @@ task gateway:image              # 构建磁盘镜像 (需要 KVM)
 透明代理网关，使用 Mihomo + nftables TPROXY。
 
 - **TPROXY 模式**: 比 TUN 性能更好 (内核态重定向)
-- **输出格式**: tarball (无需特权) 或 raw 镜像 (需 KVM)
+- **LXC 容器**: 无需特权即可构建，CI 友好
 
 部署后编辑 `/etc/mihomo/config.yaml`，然后 `systemctl restart mihomo`。
 

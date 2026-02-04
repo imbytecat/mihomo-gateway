@@ -5,7 +5,7 @@
 ## 项目概述
 
 个人 IaC (Infrastructure as Code) 仓库，使用 **NixOS Flakes** 管理：
-- **NixOS 主机配置**: VM 镜像 (输出 raw/qcow2)
+- **NixOS 主机配置**: LXC 容器镜像 (tarball)
 - **Docker Compose**: 容器化服务 (计划中)
 - **Terraform/OpenTofu**: 基础设施编排 (计划中)
 
@@ -32,7 +32,7 @@ task --list
 
 # 构建 mihomo-gateway
 task gateway:build       # 构建系统配置
-task gateway:image       # 构建磁盘镜像
+task gateway:tarball     # 构建 LXC tarball
 
 # 开发
 task dev                 # 进入开发 shell
@@ -106,8 +106,10 @@ docs: 更新 README
 ### NixOS 构建
 
 - 需要 Nix (Linux/macOS/WSL2)
-- Windows 用户使用 WSL2 + NixOS-WSL
+- Windows 用户使用 WSL2
+- Arch Linux 用 `pacman -S nix`，需启用 `experimental-features = nix-command flakes`
 - `flake.lock` 锁定所有依赖版本，确保可复现
+- **无需特权**: LXC tarball 构建不需要 root 或 KVM
 
 ### TPROXY 透明代理
 

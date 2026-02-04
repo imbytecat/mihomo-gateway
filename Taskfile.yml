@@ -22,16 +22,10 @@ tasks:
       - echo "Output -> ./result"
 
   gateway:tarball:
-    desc: Build mihomo-gateway tarball (CI friendly, no privilege)
+    desc: Build mihomo-gateway LXC tarball (CI friendly, no privilege)
     cmds:
       - nix build .#mihomo-gateway-tarball
       - echo "Output -> ./result/tarball/*.tar.xz"
-
-  gateway:image:
-    desc: Build mihomo-gateway disk image (requires KVM/privileged)
-    cmds:
-      - nix build .#mihomo-gateway-image
-      - echo "Output -> ./result/*.raw"
 
   # ============================================================
   # Development
