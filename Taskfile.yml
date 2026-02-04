@@ -33,7 +33,7 @@ tasks:
   fmt:
     desc: Format all Nix files
     cmds:
-      - nix fmt
+      - nixfmt *.nix
 
   check:
     desc: Check flake and evaluate configurations
