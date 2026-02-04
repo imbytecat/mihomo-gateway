@@ -3,6 +3,10 @@
 *.auto.pkrvars.hcl
 packer_cache/
 packer-manifest.json
+output-*/
+
+# Pre-downloaded binaries (use git-lfs if you want to version these)
+packer/proxmox/*/files/mihomo/mihomo-linux-*
 
 # Environment files
 .env

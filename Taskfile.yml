@@ -3,15 +3,11 @@ version: "3"
 
 vars:
   PACKER_BASE: packer/proxmox
+  GATEWAY_DIR: packer/proxmox/mihomo-gateway
 
 env:
   # Proxmox credentials (set these in your environment or .env file)
-  # PKR_VAR_proxmox_api_url: https://your-proxmox:8006/api2/json
-  # PKR_VAR_proxmox_api_token_id: user@pam!token-name
-  # PKR_VAR_proxmox_api_token_secret: your-token-secret
-  # PKR_VAR_proxmox_node: pve
-  # PKR_VAR_proxmox_iso_file: local:iso/debian-12.x.x-amd64-netinst.iso
-  # PKR_VAR_ssh_password: packer
+  # See .env.example for all available variables
 
 tasks:
   default:
@@ -20,39 +16,47 @@ tasks:
       - task --list
 
   # ============================================================
-  # debian-gateway template
+  # mihomo-gateway template
   # ============================================================
   gateway:init:
-    desc: Initialize Packer plugins for debian-gateway
-    dir: "{{.PACKER_BASE}}/debian-gateway"
+    desc: Initialize Packer plugins for mihomo-gateway
+    dir: "{{.GATEWAY_DIR}}"
     cmds:
       - packer init .
 
   gateway:fmt:
-    desc: Format Packer HCL files for debian-gateway
-    dir: "{{.PACKER_BASE}}/debian-gateway"
+    desc: Format Packer HCL files for mihomo-gateway
+    dir: "{{.GATEWAY_DIR}}"
     cmds:
       - packer fmt .
 
   gateway:validate:
-    desc: Validate debian-gateway template
-    dir: "{{.PACKER_BASE}}/debian-gateway"
+    desc: Validate mihomo-gateway template
+    dir: "{{.GATEWAY_DIR}}"
     deps:
       - gateway:init
     cmds:
       - packer validate .
 
   gateway:build:
-    desc: Build the Debian gateway VM template
-    dir: "{{.PACKER_BASE}}/debian-gateway"
+    desc: Build mihomo-gateway on Proxmox (requires API access)
+    dir: "{{.GATEWAY_DIR}}"
     deps:
       - gateway:validate
     cmds:
-      - packer build .
+      - packer build -only='proxmox-iso.mihomo-gateway' .
+
+  gateway:build-local:
+    desc: Build mihomo-gateway locally with QEMU (produces qcow2)
+    dir: "{{.GATEWAY_DIR}}"
+    deps:
+      - gateway:validate
+    cmds:
+      - packer build -only='qemu.mihomo-gateway' .
 
   gateway:build-debug:
-    desc: Build debian-gateway with debug output
-    dir: "{{.PACKER_BASE}}/debian-gateway"
+    desc: Build mihomo-gateway with debug output
+    dir: "{{.GATEWAY_DIR}}"
     deps:
       - gateway:init
     env:
@@ -60,9 +64,15 @@ tasks:
     cmds:
       - packer build -debug .
 
+  gateway:download-mihomo:
+    desc: Download latest Mihomo binary for offline builds
+    dir: "{{.GATEWAY_DIR}}"
+    cmds:
+      - bash scripts/download-mihomo.sh
+
   # ============================================================
   # Generic packer commands (requires TEMPLATE variable)
-  # Usage: task packer:build TEMPLATE=debian-gateway
+  # Usage: task packer:build TEMPLATE=mihomo-gateway
   # ============================================================
   packer:init:
     desc: "Initialize Packer plugins (usage: task packer:init TEMPLATE=xxx)"
@@ -98,11 +108,13 @@ tasks:
   # Utility tasks
   # ============================================================
   clean:
-    desc: Clean all Packer caches
+    desc: Clean all Packer caches and output directories
     cmds:
       - cmd: rm -rf packer_cache
         ignore_error: true
       - cmd: rm -rf {{.PACKER_BASE}}/*/packer_cache
+        ignore_error: true
+      - cmd: rm -rf {{.PACKER_BASE}}/*/output-*
         ignore_error: true
 
   list-templates:

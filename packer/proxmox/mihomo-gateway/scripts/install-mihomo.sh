@@ -14,35 +14,46 @@ esac
 
 echo "==> Detected architecture: $MIHOMO_ARCH"
 
-# Fetch latest release URL from GitHub API
-echo "==> Fetching latest Mihomo release..."
-DOWNLOAD_URL=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest \
-    | grep "browser_download_url.*mihomo-linux-${MIHOMO_ARCH}-v" \
-    | grep -v "alpha\|compatible" \
-    | head -1 \
-    | cut -d '"' -f 4)
+# Check for pre-bundled binary first (for offline builds)
+PREBUNDLED_BINARY="/tmp/files/mihomo/mihomo-linux-${MIHOMO_ARCH}"
 
-if [ -z "$DOWNLOAD_URL" ]; then
-    echo "ERROR: Could not find download URL for architecture $MIHOMO_ARCH"
-    exit 1
+if [ -f "$PREBUNDLED_BINARY" ]; then
+    echo "==> Found pre-bundled binary: $PREBUNDLED_BINARY"
+    cp "$PREBUNDLED_BINARY" /usr/local/bin/mihomo
+    chmod +x /usr/local/bin/mihomo
+else
+    echo "==> No pre-bundled binary found, downloading from GitHub..."
+    
+    # Fetch latest release URL from GitHub API
+    DOWNLOAD_URL=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest \
+        | grep "browser_download_url.*mihomo-linux-${MIHOMO_ARCH}-v" \
+        | grep -v "alpha\|compatible" \
+        | head -1 \
+        | cut -d '"' -f 4)
+
+    if [ -z "$DOWNLOAD_URL" ]; then
+        echo "ERROR: Could not find download URL for architecture $MIHOMO_ARCH"
+        echo "TIP: Pre-bundle the binary at files/mihomo/mihomo-linux-${MIHOMO_ARCH}"
+        exit 1
+    fi
+
+    echo "==> Downloading from: $DOWNLOAD_URL"
+
+    # Download and extract
+    cd /tmp
+    curl -LO "$DOWNLOAD_URL"
+    FILENAME=$(basename "$DOWNLOAD_URL")
+
+    # Handle different compression formats
+    if [[ "$FILENAME" == *.gz ]]; then
+        gzip -d "$FILENAME"
+        FILENAME="${FILENAME%.gz}"
+    fi
+
+    # Install binary
+    chmod +x "$FILENAME"
+    mv "$FILENAME" /usr/local/bin/mihomo
 fi
-
-echo "==> Downloading from: $DOWNLOAD_URL"
-
-# Download and extract
-cd /tmp
-curl -LO "$DOWNLOAD_URL"
-FILENAME=$(basename "$DOWNLOAD_URL")
-
-# Handle different compression formats
-if [[ "$FILENAME" == *.gz ]]; then
-    gzip -d "$FILENAME"
-    FILENAME="${FILENAME%.gz}"
-fi
-
-# Install binary
-chmod +x "$FILENAME"
-mv "$FILENAME" /usr/local/bin/mihomo
 
 echo "==> Mihomo installed at /usr/local/bin/mihomo"
 /usr/local/bin/mihomo -v

@@ -6,98 +6,77 @@
 
 ```
 iac/
-├── Taskfile.yml              # 统一构建入口
-├── packer/
-│   └── proxmox/              # Proxmox VM 模板
-│       └── debian-gateway/   # 透明代理网关 (自包含)
-│           ├── *.pkr.hcl     # Packer 模板
-│           ├── http/         # Preseed 配置
-│           ├── scripts/      # 配置脚本
-│           └── files/        # 配置文件
-├── shared/                   # 跨模板复用资源
-└── docker/                   # Docker Compose 服务 (TODO)
+├── Taskfile.yml                          # 统一构建入口
+├── mise.toml                             # 工具版本管理
+├── scripts/                              # 全局脚本
+│   └── import-to-proxmox.sh              # 导入 qcow2 到 Proxmox
+├── packer/proxmox/                       # Proxmox VM 模板
+│   └── mihomo-gateway/                   # 透明代理网关 (自包含)
+│       ├── *.pkr.hcl                     # Packer 模板
+│       ├── http/                         # Preseed 配置
+│       ├── scripts/                      # 配置脚本
+│       └── files/                        # 配置文件
+└── docker/                               # Docker Compose 服务 (TODO)
 ```
 
 每个 VM 模板都是**自包含**的，所有相关配置都在同一目录下，便于维护。
 
 ## 前置要求
 
-### 本地环境
-
-- [Packer](https://developer.hashicorp.com/packer/downloads) >= 1.10.0
-- [Task](https://taskfile.dev/installation/) (Taskfile runner)
-
-### Proxmox VE
-
-1. 创建 API Token:
-   ```bash
-   # 在 Proxmox 上执行
-   pveum user token add root@pam packer --privsep=0
-   ```
-
-2. 下载 Debian ISO 到 Proxmox:
-   ```bash
-   # 在 Proxmox 上执行
-   cd /var/lib/vz/template/iso/
-   wget https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-12.8.0-amd64-netinst.iso
-   ```
-
-## 快速开始
-
-### 1. 设置环境变量
-
-```powershell
-# Windows PowerShell
-$env:PKR_VAR_proxmox_api_url = "https://your-proxmox:8006/api2/json"
-$env:PKR_VAR_proxmox_api_token_id = "root@pam!packer"
-$env:PKR_VAR_proxmox_api_token_secret = "your-token-secret"
-$env:PKR_VAR_proxmox_node = "pve"
-$env:PKR_VAR_proxmox_iso_file = "local:iso/debian-12.8.0-amd64-netinst.iso"
-$env:PKR_VAR_ssh_password = "packer"  # 构建时使用，模板不保留
-```
+使用 [mise](https://mise.jdx.dev/) 管理工具版本和环境变量：
 
 ```bash
-# Linux/macOS
-export PKR_VAR_proxmox_api_url="https://your-proxmox:8006/api2/json"
-export PKR_VAR_proxmox_api_token_id="root@pam!packer"
-export PKR_VAR_proxmox_api_token_secret="your-token-secret"
-export PKR_VAR_proxmox_node="pve"
-export PKR_VAR_proxmox_iso_file="local:iso/debian-12.8.0-amd64-netinst.iso"
-export PKR_VAR_ssh_password="packer"
+mise install  # 安装 packer, task
 ```
 
-### 2. 构建模板
+## 构建模式
+
+支持两种构建模式，适应不同网络环境：
+
+| 模式 | 命令 | 场景 |
+|------|------|------|
+| **本地构建** | `task gateway:build-local` | CI/有网络环境，生成 qcow2 |
+| **直接构建** | `task gateway:build` | 可连接 Proxmox API |
+
+### 模式 1: 本地构建 (推荐用于 CI/CD)
 
 ```bash
-# 查看可用任务
-task --list
+# 1. 预下载 Mihomo 二进制 (在有网络的环境)
+task gateway:download-mihomo
 
-# 构建 debian-gateway 模板
+# 2. 本地构建 qcow2 镜像
+task gateway:build-local
+
+# 3. 将镜像传输到 Proxmox
+scp output-mihomo-gateway/mihomo-gateway.qcow2 root@pve:/tmp/
+
+# 4. 在 Proxmox 上导入
+ssh root@pve 'bash -s' < scripts/import-to-proxmox.sh
+```
+
+### 模式 2: 直接在 Proxmox 构建
+
+```bash
+# 设置环境变量 (或复制 .env.example 为 .env)
+cp .env.example .env
+vim .env  # 填入 Proxmox API 凭据
+
+# 构建
 task gateway:build
-
-# 或使用通用命令
-task packer:build TEMPLATE=debian-gateway
 ```
-
-### 3. 部署 VM
-
-1. 在 Proxmox 中从模板克隆 VM
-2. 配置 Cloud-Init (网络、SSH 密钥等)
-3. 编辑 `/etc/mihomo/config.yaml` 添加你的代理配置
-4. 启动 mihomo 服务: `sudo systemctl start mihomo`
 
 ## VM 模板
 
-### debian-gateway
+### mihomo-gateway
 
 透明代理网关 VM，基于 Debian 12，预装:
 
-- **Mihomo** (Clash Meta) 透明代理
-- **nftables** TPROXY 规则
+- **Mihomo** (Clash Meta) TPROXY 透明代理
+- **nftables** 流量拦截规则
 - **策略路由** 配置
 - **Cloud-Init** 支持
 
-#### 配置要点
+#### 技术规格
 
 | 配置项 | 值 |
 |--------|-----|
@@ -125,20 +104,38 @@ sudo systemctl status mihomo
 sudo nft list tables
 ```
 
+## 常用命令
+
+```bash
+# 查看所有可用任务
+task --list
+
+# mihomo-gateway 相关
+task gateway:init            # 初始化 Packer 插件
+task gateway:validate        # 验证模板
+task gateway:build           # 直接在 Proxmox 构建
+task gateway:build-local     # 本地 QEMU 构建 (生成 qcow2)
+task gateway:download-mihomo # 预下载 Mihomo 二进制
+
+# 通用
+task clean                   # 清理缓存和构建输出
+task list-templates          # 列出所有模板
+```
+
 ## 添加新模板
 
-1. 复制现有模板目录作为基础:
+1. 复制现有模板目录:
    ```bash
-   cp -r packer/proxmox/debian-gateway packer/proxmox/your-new-template
+   cp -r packer/proxmox/mihomo-gateway packer/proxmox/new-template
    ```
 
-2. 修改 `your-new-template/*.pkr.hcl` 中的配置
+2. 修改 `new-template/*.pkr.hcl`
 
-3. 在 `Taskfile.yml` 中添加对应的 task (可选，或使用通用命令)
+3. 在 `Taskfile.yml` 添加专用 task (可选)
 
 4. 构建:
    ```bash
-   task packer:build TEMPLATE=your-new-template
+   task packer:build TEMPLATE=new-template
    ```
 
 ## 故障排除
@@ -153,17 +150,26 @@ task gateway:build-debug
 PACKER_LOG=1 task gateway:build
 ```
 
-### VNC 连接问题
+### QEMU 构建问题
 
-如果 `boot_command` 失败，检查:
-- Proxmox 防火墙是否允许 VNC 端口 (5900-5999)
-- 网络延迟是否过高
-
-### TLS 证书问题
-
-如果 Proxmox 使用自签名证书:
+确保安装了 QEMU/KVM:
 ```bash
-export PKR_VAR_proxmox_skip_tls_verify=true
+# Linux
+sudo apt install qemu-kvm
+
+# macOS
+brew install qemu
+```
+
+### 无法访问 GitHub
+
+使用预下载模式:
+```bash
+# 在有网络的机器上
+task gateway:download-mihomo
+
+# 二进制文件保存在 files/mihomo/mihomo-linux-amd64
+# 构建时会自动使用本地文件
 ```
 
 ## License

@@ -26,7 +26,7 @@ task = 'latest'
 # 查看所有可用任务
 task --list
 
-# debian-gateway 模板专用命令
+# mihomo-gateway 模板专用命令
 task gateway:init       # 初始化 Packer 插件
 task gateway:fmt        # 格式化 HCL 文件
 task gateway:validate   # 验证模板
@@ -34,9 +34,9 @@ task gateway:build      # 构建 VM 模板
 task gateway:build-debug # 调试模式构建
 
 # 通用 Packer 命令 (用于任意模板)
-task packer:init TEMPLATE=debian-gateway
-task packer:validate TEMPLATE=debian-gateway
-task packer:build TEMPLATE=debian-gateway
+task packer:init TEMPLATE=mihomo-gateway
+task packer:validate TEMPLATE=mihomo-gateway
+task packer:build TEMPLATE=mihomo-gateway
 
 # 清理
 task clean              # 清理 Packer 缓存
@@ -133,7 +133,7 @@ export PKR_VAR_proxmox_api_token_secret="xxx"
 
 1. 复制现有模板目录:
    ```bash
-   cp -r packer/proxmox/debian-gateway packer/proxmox/new-template
+   cp -r packer/proxmox/mihomo-gateway packer/proxmox/new-template
    ```
 
 2. 修改 `new-template/*.pkr.hcl`
