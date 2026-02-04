@@ -2,11 +2,7 @@
 version: "3"
 
 vars:
-  PACKER_BASE: packer
-  GATEWAY_DIR: packer/mihomo-gateway
-
-env:
-  # See .env.example for all available variables
+  MKOSI_BASE: mkosi
 
 tasks:
   default:
@@ -15,111 +11,39 @@ tasks:
       - task --list
 
   # ============================================================
-  # mihomo-gateway template
+  # mkosi - mihomo-gateway
   # ============================================================
-  gateway:init:
-    desc: Initialize Packer plugins for mihomo-gateway
-    dir: "{{.GATEWAY_DIR}}"
+  gateway:download:
+    desc: Download Mihomo binary
+    dir: "{{.MKOSI_BASE}}/mihomo-gateway"
     cmds:
-      - packer init .
-
-  gateway:fmt:
-    desc: Format Packer HCL files for mihomo-gateway
-    dir: "{{.GATEWAY_DIR}}"
-    cmds:
-      - packer fmt .
-
-  gateway:validate:
-    desc: Validate mihomo-gateway template
-    dir: "{{.GATEWAY_DIR}}"
-    deps:
-      - gateway:init
-    cmds:
-      - packer validate .
+      - bash download-mihomo.sh
 
   gateway:build:
-    desc: Build mihomo-gateway on Proxmox (requires API access)
-    dir: "{{.GATEWAY_DIR}}"
-    deps:
-      - gateway:validate
+    desc: Build mihomo-gateway image (requires Linux/WSL2)
+    dir: "{{.MKOSI_BASE}}/mihomo-gateway"
     cmds:
-      - packer build -only='proxmox-iso.mihomo-gateway' .
+      - mkosi build
 
-  gateway:build-local:
-    desc: Build mihomo-gateway locally with QEMU (produces qcow2)
-    dir: "{{.GATEWAY_DIR}}"
-    deps:
-      - gateway:validate
+  gateway:clean:
+    desc: Clean mihomo-gateway build output
+    dir: "{{.MKOSI_BASE}}/mihomo-gateway"
     cmds:
-      - packer build -only='qemu.mihomo-gateway' .
-
-  gateway:build-debug:
-    desc: Build mihomo-gateway with debug output
-    dir: "{{.GATEWAY_DIR}}"
-    deps:
-      - gateway:init
-    env:
-      PACKER_LOG: "1"
-    cmds:
-      - packer build -debug .
-
-  gateway:download-mihomo:
-    desc: Download latest Mihomo binary for offline builds
-    dir: "{{.GATEWAY_DIR}}"
-    cmds:
-      - bash scripts/download-mihomo.sh
-
-  # ============================================================
-  # Generic packer commands (requires TEMPLATE variable)
-  # Usage: task packer:build TEMPLATE=mihomo-gateway
-  # ============================================================
-  packer:init:
-    desc: "Initialize Packer plugins (usage: task packer:init TEMPLATE=xxx)"
-    dir: "{{.PACKER_BASE}}/{{.TEMPLATE}}"
-    requires:
-      vars: [TEMPLATE]
-    cmds:
-      - packer init .
-
-  packer:validate:
-    desc: "Validate template (usage: task packer:validate TEMPLATE=xxx)"
-    dir: "{{.PACKER_BASE}}/{{.TEMPLATE}}"
-    requires:
-      vars: [TEMPLATE]
-    deps:
-      - task: packer:init
-        vars: { TEMPLATE: "{{.TEMPLATE}}" }
-    cmds:
-      - packer validate .
-
-  packer:build:
-    desc: "Build template (usage: task packer:build TEMPLATE=xxx)"
-    dir: "{{.PACKER_BASE}}/{{.TEMPLATE}}"
-    requires:
-      vars: [TEMPLATE]
-    deps:
-      - task: packer:validate
-        vars: { TEMPLATE: "{{.TEMPLATE}}" }
-    cmds:
-      - packer build .
+      - mkosi clean
 
   # ============================================================
   # Utility tasks
   # ============================================================
   clean:
-    desc: Clean all Packer caches and output directories
+    desc: Clean all build outputs
     cmds:
-      - cmd: rm -rf packer_cache
-        ignore_error: true
-      - cmd: rm -rf {{.PACKER_BASE}}/*/packer_cache
-        ignore_error: true
-      - cmd: rm -rf {{.PACKER_BASE}}/*/output-*
+      - cmd: rm -rf {{.MKOSI_BASE}}/*/output
         ignore_error: true
 
-  list-templates:
-    desc: List available Packer templates
+  list:
+    desc: List available templates
     cmds:
-      - cmd: ls -1 {{.PACKER_BASE}}/
+      - cmd: ls -1 {{.MKOSI_BASE}}/
         platforms: [linux, darwin]
-      - cmd: dir /B {{.PACKER_BASE}}
+      - cmd: dir /B {{.MKOSI_BASE}}
         platforms: [windows]

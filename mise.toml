@@ -1,7 +1,5 @@
 [tools]
-packer = "latest"
 task = "latest"
 
 [env]
-# Load environment variables from .env file
 _.file = ".env"

@@ -1,35 +1,25 @@
-# Packer files
-*.pkrvars.hcl
-*.auto.pkrvars.hcl
-packer_cache/
-packer-manifest.json
-output-*/
+# mkosi
+mkosi/*/output/
 
-# Pre-downloaded binaries (use git-lfs if you want to version these)
-packer/*/files/mihomo/mihomo-linux-*
+# Pre-downloaded binaries
+mkosi/*/mkosi.extra/usr/local/bin/mihomo
 
 # Environment files
 .env
-.env.*
-!.env.example
 
 # Secrets
 *.pem
 *.key
-*secret*
-*credential*
 
 # IDE and editor files
 .idea/
 .vscode/
 *.swp
-*.swo
 *~
 
 # OS files
 .DS_Store
 Thumbs.db
-desktop.ini
 
 # Logs
 *.log
@@ -39,7 +29,3 @@ desktop.ini
 *.tfstate
 *.tfstate.*
 .terraform.lock.hcl
-
-# Build artifacts
-dist/
-build/
