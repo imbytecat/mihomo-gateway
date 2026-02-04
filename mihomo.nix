@@ -11,10 +11,16 @@ let
   routingMark = 6666; # Routing mark for bypass
   fwmark = 1; # Fwmark for policy routing
 
-  # Mihomo configuration file
-  mihomoConfig = pkgs.writeText "mihomo-config.yaml" ''
-    # Mihomo Configuration Template
-    # Edit this file and add your proxy configuration
+  # Paths
+  configDir = "/etc/mihomo";
+  configFile = "${configDir}/config.yaml";
+  envFile = "${configDir}/subscription.env";
+  tempConfig = "/tmp/mihomo-new.yaml";
+
+  # Fallback config (used when no subscription or download fails)
+  fallbackConfig = pkgs.writeText "mihomo-fallback.yaml" ''
+    # Mihomo Fallback Configuration
+    # This is used when subscription is unavailable
 
     mixed-port: 7890
     tproxy-port: ${toString mihomoPort}
@@ -50,6 +56,68 @@ let
       - IP-CIDR,192.168.0.0/16,DIRECT
       - MATCH,DIRECT
   '';
+
+  # Subscription update script with validation
+  subscribeScript = pkgs.writeShellScript "mihomo-subscribe" ''
+    set -euo pipefail
+
+    # Load subscription URL from environment file
+    if [ ! -f "${envFile}" ]; then
+      echo "No subscription configured: ${envFile} not found"
+      echo "Create it with: echo 'SUBSCRIPTION_URL=https://your-subscription-url' > ${envFile}"
+      exit 0
+    fi
+
+    source "${envFile}"
+
+    if [ -z "''${SUBSCRIPTION_URL:-}" ]; then
+      echo "SUBSCRIPTION_URL not set in ${envFile}"
+      exit 0
+    fi
+
+    echo "Fetching subscription from: ''${SUBSCRIPTION_URL:0:50}..."
+
+    # Download to temp file
+    if ! ${pkgs.curl}/bin/curl -fsSL --connect-timeout 30 --max-time 120 \
+         -o "${tempConfig}" "$SUBSCRIPTION_URL"; then
+      echo "ERROR: Failed to download subscription"
+      exit 1
+    fi
+
+    # Force inject TPROXY required fields (override subscription values)
+    echo "Injecting TPROXY configuration..."
+    ${pkgs.yq-go}/bin/yq -i '
+      .tproxy-port = ${toString mihomoPort} |
+      .routing-mark = ${toString routingMark}
+    ' "${tempConfig}"
+
+    # Validate config with mihomo -t
+    echo "Validating configuration..."
+    if ! ${pkgs.mihomo}/bin/mihomo -t -f "${tempConfig}" 2>&1; then
+      echo "ERROR: Configuration validation failed"
+      rm -f "${tempConfig}"
+      exit 1
+    fi
+
+    echo "Validation passed, applying new configuration..."
+
+    # Backup current config
+    if [ -f "${configFile}" ]; then
+      cp "${configFile}" "${configFile}.bak"
+    fi
+
+    # Apply new config
+    mv "${tempConfig}" "${configFile}"
+    chmod 600 "${configFile}"
+
+    echo "Configuration updated successfully"
+
+    # Reload mihomo if running
+    if systemctl is-active --quiet mihomo; then
+      echo "Restarting mihomo service..."
+      systemctl restart mihomo
+    fi
+  '';
 in
 {
   # ============================================
@@ -57,7 +125,50 @@ in
   # ============================================
   services.mihomo = {
     enable = true;
-    configFile = mihomoConfig;
+    configFile = configFile;
+  };
+
+  # Create config directory and fallback config
+  systemd.tmpfiles.rules = [
+    "d ${configDir} 0755 root root -"
+  ];
+
+  # Ensure fallback config exists on activation
+  system.activationScripts.mihomo-config = ''
+    if [ ! -f "${configFile}" ]; then
+      cp ${fallbackConfig} ${configFile}
+      chmod 600 ${configFile}
+    fi
+  '';
+
+  # ============================================
+  # Subscription Update Service
+  # ============================================
+  systemd.services.mihomo-subscribe = {
+    description = "Fetch and validate Mihomo subscription";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = subscribeScript;
+      # Retry on failure
+      Restart = "on-failure";
+      RestartSec = "30s";
+    };
+  };
+
+  # Timer for periodic subscription updates
+  systemd.timers.mihomo-subscribe = {
+    description = "Periodic Mihomo subscription update";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      # First run 2 minutes after boot
+      OnBootSec = "2min";
+      # Then every 6 hours
+      OnUnitActiveSec = "6h";
+      # Randomize to avoid thundering herd
+      RandomizedDelaySec = "5min";
+    };
   };
 
   # Override systemd service for TPROXY capabilities
