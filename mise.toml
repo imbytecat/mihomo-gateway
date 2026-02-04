@@ -1,5 +1,2 @@
 [tools]
 task = "latest"
-
-[env]
-_.file = ".env"
