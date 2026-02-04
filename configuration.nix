@@ -9,7 +9,8 @@
 
 {
   imports = [
-    ./mihomo.nix
+    ./modules/gateway.nix
+    ./modules/mihomo-subscribe.nix
     # LXC container support (no privilege required)
     "${modulesPath}/virtualisation/lxc-container.nix"
   ];
@@ -46,15 +47,18 @@
     vim
   ];
 
-  # SSH
+  # SSH (no default password, key-only recommended)
   services.openssh = {
     enable = true;
-    settings.PermitRootLogin = "yes"; # TODO: Adjust for production
+    settings = {
+      PermitRootLogin = "prohibit-password"; # Key-only
+      PasswordAuthentication = false;
+    };
   };
 
-  # Root user (for initial access, override lxc-container.nix empty password)
+  # Root user (no default password - inject keys via deployment)
   users.users.root = {
-    initialPassword = "nixos";
-    initialHashedPassword = lib.mkForce null;
+    # No password set - use SSH keys
+    hashedPassword = null;
   };
 }

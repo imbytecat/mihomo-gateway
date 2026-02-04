@@ -42,11 +42,13 @@ nix flake check      # 验证构建
 
 ```
 mihomo-gateway/
-├── flake.nix           # Flake 入口
-├── flake.lock          # 版本锁定
-├── configuration.nix   # NixOS 配置
-├── mihomo.nix          # Mihomo TPROXY 模块
-└── Taskfile.yml        # 构建任务
+├── flake.nix              # Flake 入口
+├── flake.lock             # 版本锁定
+├── configuration.nix      # NixOS 配置 (薄层)
+├── Taskfile.yml           # 构建任务
+└── modules/
+    ├── gateway.nix        # TPROXY 网关 (sysctl + routing + nftables)
+    └── mihomo-subscribe.nix  # Mihomo 服务 + 订阅管理
 ```
 
 ## 代码风格
