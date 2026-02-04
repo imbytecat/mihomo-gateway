@@ -28,13 +28,13 @@
     # Development shell
     devShells.${system}.default = pkgs.mkShell {
       packages = with pkgs; [
-        nil        # Nix LSP
-        nixfmt-rfc-style   # Formatter
+        nil     # Nix LSP
+        nixfmt  # Formatter
       ];
     };
 
     # Formatter (nix fmt)
-    formatter.${system} = pkgs.nixfmt-rfc-style;
+    formatter.${system} = pkgs.nixfmt;
 
     # Checks (nix flake check)
     checks.${system} = {
