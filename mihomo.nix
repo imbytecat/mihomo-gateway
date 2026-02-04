@@ -7,7 +7,7 @@
 }:
 
 let
-  mihomoPort = 7894; # TPROXY port
+  tproxyPort = 7894; # TPROXY listening port
   routingMark = 6666; # Routing mark for bypass
   fwmark = 1; # Fwmark for policy routing
 
@@ -22,7 +22,7 @@ let
     # Mihomo Fallback Configuration
     # This is used when subscription is unavailable
 
-    tproxy-port: ${toString mihomoPort}
+    tproxy-port: ${toString tproxyPort}
     routing-mark: ${toString routingMark}
 
     allow-lan: true
@@ -86,7 +86,7 @@ let
     # Force inject TPROXY required fields (override subscription values)
     echo "Injecting TPROXY configuration..."
     ${pkgs.yq-go}/bin/yq -i '
-      .tproxy-port = ${toString mihomoPort} |
+      .tproxy-port = ${toString tproxyPort} |
       .routing-mark = ${toString routingMark} |
       .allow-lan = true |
       .find-process-mode = "off"
@@ -247,7 +247,7 @@ in
           # Bypass private addresses
           ip daddr @bypass4 return
           # TPROXY everything else
-          meta l4proto { tcp, udp } tproxy to :${toString mihomoPort} meta mark set ${toString fwmark}
+          meta l4proto { tcp, udp } tproxy to :${toString tproxyPort} meta mark set ${toString fwmark}
         }
       }
     '';
