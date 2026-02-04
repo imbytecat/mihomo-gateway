@@ -1,20 +1,41 @@
 # IaC - Infrastructure as Code
 
-个人 IaC 仓库，使用 mkosi 构建 VM 镜像。
+个人 IaC 仓库，使用 **NixOS Flakes** 构建 VM 镜像。
+
+## 环境准备
+
+### Windows (WSL2)
+
+```powershell
+wsl --install --no-distribution
+# 下载 https://github.com/nix-community/NixOS-WSL/releases
+wsl --import NixOS $env:LOCALAPPDATA\WSL\NixOS .\nixos-wsl.tar.gz
+wsl -d NixOS
+```
+
+### Linux / macOS
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh
+```
 
 ## 快速开始
 
 ```bash
-mise install                    # 安装工具
-task gateway:download           # 下载 mihomo
-task gateway:build              # 构建 (需要 Linux/WSL2)
+mise install                    # 安装 task
+task gateway:build              # 构建系统配置
+task gateway:tarball            # 构建 tarball (CI 友好)
+task gateway:image              # 构建磁盘镜像 (需要 KVM)
 ```
 
-## VM 模板
+## NixOS 主机
 
 ### mihomo-gateway
 
-Debian 12 透明代理网关，预装 Mihomo + nftables TPROXY。
+透明代理网关，使用 Mihomo + nftables TPROXY。
+
+- **TPROXY 模式**: 比 TUN 性能更好 (内核态重定向)
+- **输出格式**: tarball (无需特权) 或 raw 镜像 (需 KVM)
 
 部署后编辑 `/etc/mihomo/config.yaml`，然后 `systemctl restart mihomo`。
 
@@ -22,5 +43,21 @@ Debian 12 透明代理网关，预装 Mihomo + nftables TPROXY。
 
 ```bash
 task --list                     # 所有命令
-task clean                      # 清理
+task dev                        # 进入开发 shell
+task fmt                        # 格式化 Nix 代码
+task check                      # 检查 flake
+task update                     # 更新依赖
+task clean                      # 清理构建输出
+```
+
+## 目录结构
+
+```
+iac/
+├── flake.nix                   # Flake 入口
+├── flake.lock                  # 版本锁定
+├── hosts/                      # NixOS 主机配置
+│   └── mihomo-gateway/
+├── Taskfile.yml
+└── mise.toml
 ```
