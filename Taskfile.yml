@@ -2,11 +2,10 @@
 version: "3"
 
 vars:
-  PACKER_BASE: packer/proxmox
-  GATEWAY_DIR: packer/proxmox/mihomo-gateway
+  PACKER_BASE: packer
+  GATEWAY_DIR: packer/mihomo-gateway
 
 env:
-  # Proxmox credentials (set these in your environment or .env file)
   # See .env.example for all available variables
 
 tasks:

@@ -5,7 +5,7 @@
 ## 项目概述
 
 个人 IaC (Infrastructure as Code) 仓库，用于管理：
-- **Packer**: Proxmox VE 虚拟机模板
+- **Packer**: VM 模板 (QEMU 构建，可导入 Proxmox/KVM)
 - **Docker Compose**: 容器化服务 (计划中)
 - **Terraform/OpenTofu**: 基础设施编排 (计划中)
 
@@ -51,7 +51,7 @@ iac/
 ├── Taskfile.yml              # 统一构建入口
 ├── mise.toml                 # 工具版本 + .env 自动加载
 ├── .env.example              # 环境变量模板
-├── packer/proxmox/           # Proxmox VM 模板
+├── packer/                   # VM 模板
 │   └── <template-name>/      # 每个模板自包含
 │       ├── *.pkr.hcl         # Packer 模板定义
 │       ├── variables.pkr.hcl # 变量声明
@@ -135,7 +135,7 @@ export PKR_VAR_proxmox_api_token_secret="xxx"
 
 1. 复制现有模板目录:
    ```bash
-   cp -r packer/proxmox/mihomo-gateway packer/proxmox/new-template
+   cp -r packer/mihomo-gateway packer/new-template
    ```
 
 2. 修改 `new-template/*.pkr.hcl`
@@ -157,8 +157,10 @@ chore: 清理无用文件
 
 ## 注意事项
 
-### Packer for Proxmox
+### Packer 构建
 
+- 默认使用 QEMU builder 本地构建 qcow2
+- 也支持 Proxmox builder 直接在 PVE 上构建
 - `boot_command` 通过 VNC 发送键盘输入，对延迟敏感
 - 使用 `ssh_handshake_attempts = 100` 应对慢速安装
 - 模板完成后会自动清理 SSH host keys 和 machine-id

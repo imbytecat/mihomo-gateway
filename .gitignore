@@ -6,7 +6,7 @@ packer-manifest.json
 output-*/
 
 # Pre-downloaded binaries (use git-lfs if you want to version these)
-packer/proxmox/*/files/mihomo/mihomo-linux-*
+packer/*/files/mihomo/mihomo-linux-*
 
 # Environment files
 .env
