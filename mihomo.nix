@@ -88,7 +88,9 @@ let
     echo "Injecting TPROXY configuration..."
     ${pkgs.yq-go}/bin/yq -i '
       .tproxy-port = ${toString mihomoPort} |
-      .routing-mark = ${toString routingMark}
+      .routing-mark = ${toString routingMark} |
+      .allow-lan = true |
+      .find-process-mode = "off"
     ' "${tempConfig}"
 
     # Validate config with mihomo -t

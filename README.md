@@ -48,8 +48,52 @@ task tarball         # 构建 LXC tarball
 ## 部署
 
 1. 将 tarball 导入 Proxmox VE 或其他 LXC 平台
-2. 编辑 `/etc/mihomo/config.yaml` 配置代理
-3. `systemctl restart mihomo`
+2. 配置订阅 URL（见下方）
+3. 启动容器
+
+### 配置订阅
+
+创建环境变量文件：
+
+```bash
+echo 'SUBSCRIPTION_URL=https://your-subscription-url' > /etc/mihomo/subscription.env
+chmod 600 /etc/mihomo/subscription.env
+```
+
+### 服务说明
+
+| 服务                       | 类型   | 作用                         |
+| -------------------------- | ------ | ---------------------------- |
+| `mihomo.service`           | 常驻   | 运行 Mihomo 代理             |
+| `mihomo-subscribe.service` | oneshot | 拉取订阅、验证、替换配置     |
+| `mihomo-subscribe.timer`   | timer  | 定时触发订阅拉取             |
+
+**启动流程**：
+1. 系统启动 → mihomo 使用现有配置启动
+2. 2 分钟后 → timer 触发 subscribe 拉取订阅
+3. 订阅验证通过 → 替换配置并重启 mihomo
+4. 之后每 6 小时自动更新
+
+手动操作：
+
+```bash
+systemctl start mihomo-subscribe   # 立即拉取订阅
+systemctl status mihomo            # 查看代理状态
+journalctl -u mihomo-subscribe     # 查看订阅拉取日志
+```
+
+### 订阅配置说明
+
+拉取的订阅会自动注入以下 TPROXY 必需配置（覆盖订阅原有值）：
+
+```yaml
+tproxy-port: 7894
+routing-mark: 6666
+allow-lan: true
+find-process-mode: "off"
+```
+
+配置会在应用前用 `mihomo -t` 验证，验证失败则保留原配置。
 
 ## 命令
 
