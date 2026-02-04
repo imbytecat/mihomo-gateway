@@ -32,5 +32,13 @@
         nixfmt-rfc-style   # Formatter
       ];
     };
+
+    # Formatter (nix fmt)
+    formatter.${system} = pkgs.nixfmt-rfc-style;
+
+    # Checks (nix flake check)
+    checks.${system} = {
+      mihomo-gateway = self.nixosConfigurations.mihomo-gateway.config.system.build.toplevel;
+    };
   };
 }

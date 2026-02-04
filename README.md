@@ -60,6 +60,10 @@ task fmt                        # 格式化 Nix 代码
 task check                      # 检查 flake
 task update                     # 更新依赖
 task clean                      # 清理构建输出
+
+# 也可以直接使用 nix 命令
+nix fmt                         # 格式化 (使用 nixfmt-rfc-style)
+nix flake check                 # 验证构建
 ```
 
 ## 目录结构

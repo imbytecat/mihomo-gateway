@@ -40,6 +40,10 @@ task fmt                 # 格式化 Nix 代码
 task check               # 检查 flake 配置
 task update              # 更新 flake.lock
 
+# 原生 nix 命令 (无需 task)
+nix fmt                  # 格式化代码
+nix flake check          # 验证构建
+
 # 清理
 task clean               # 清理构建输出
 task list                # 列出所有配置
