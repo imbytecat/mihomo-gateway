@@ -1,10 +1,15 @@
 # Mihomo TPROXY Transparent Proxy Module
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 let
-  mihomoPort = 7894;      # TPROXY port
-  routingMark = 6666;     # Routing mark for bypass
-  fwmark = 1;             # Fwmark for policy routing
+  mihomoPort = 7894; # TPROXY port
+  routingMark = 6666; # Routing mark for bypass
+  fwmark = 1; # Fwmark for policy routing
 
   # Mihomo configuration file
   mihomoConfig = pkgs.writeText "mihomo-config.yaml" ''
@@ -57,11 +62,22 @@ in
 
   # Override systemd service for TPROXY capabilities
   systemd.services.mihomo = {
-    after = [ "network.target" "nftables.service" ];
+    after = [
+      "network.target"
+      "nftables.service"
+    ];
     wants = [ "nftables.service" ];
     serviceConfig = {
-      CapabilityBoundingSet = [ "CAP_NET_ADMIN" "CAP_NET_RAW" "CAP_NET_BIND_SERVICE" ];
-      AmbientCapabilities = [ "CAP_NET_ADMIN" "CAP_NET_RAW" "CAP_NET_BIND_SERVICE" ];
+      CapabilityBoundingSet = [
+        "CAP_NET_ADMIN"
+        "CAP_NET_RAW"
+        "CAP_NET_BIND_SERVICE"
+      ];
+      AmbientCapabilities = [
+        "CAP_NET_ADMIN"
+        "CAP_NET_RAW"
+        "CAP_NET_BIND_SERVICE"
+      ];
       LimitNOFILE = 1000000;
     };
   };

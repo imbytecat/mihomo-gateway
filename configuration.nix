@@ -1,5 +1,11 @@
 # Mihomo Gateway - NixOS Configuration
-{ config, pkgs, lib, modulesPath, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  modulesPath,
+  ...
+}:
 
 {
   imports = [
@@ -15,8 +21,8 @@
   networking = {
     hostName = "mihomo-gateway";
     useNetworkd = true;
-    useDHCP = false;  # Managed by networkd below
-    firewall.enable = false;  # We use nftables directly
+    useDHCP = false; # Managed by networkd below
+    firewall.enable = false; # We use nftables directly
     # Use traditional resolv.conf (LXC uses host's DNS)
     useHostResolvConf = lib.mkForce true;
   };
@@ -43,7 +49,7 @@
   # SSH
   services.openssh = {
     enable = true;
-    settings.PermitRootLogin = "yes";  # TODO: Adjust for production
+    settings.PermitRootLogin = "yes"; # TODO: Adjust for production
   };
 
   # Root user (for initial access, override lxc-container.nix empty password)
