@@ -16,7 +16,12 @@
     hostName = "mihomo-gateway";
     useDHCP = true;
     firewall.enable = false;  # We use nftables directly
+    # Use traditional resolv.conf (LXC uses host's DNS)
+    useHostResolvConf = lib.mkForce true;
   };
+
+  # Disable systemd-resolved (conflicts with useHostResolvConf)
+  services.resolved.enable = false;
 
   # Timezone
   time.timeZone = "Asia/Shanghai";
