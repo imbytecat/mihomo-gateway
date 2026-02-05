@@ -38,8 +38,8 @@ mihomo-gateway/
 ├── flake.lock             # 版本锁定
 ├── configuration.nix      # NixOS 配置 (薄层)
 └── modules/
-    ├── gateway.nix        # TPROXY 网关 (sysctl + routing + nftables)
-    └── mihomo-subscribe.nix  # Mihomo 服务 + 订阅管理
+    ├── tproxy.nix         # TPROXY 网络层 (sysctl + routing + nftables)
+    └── mihomo.nix         # Mihomo 服务 + 订阅管理
 ```
 
 ## 代码风格

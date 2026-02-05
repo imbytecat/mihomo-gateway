@@ -8,7 +8,7 @@
 }:
 
 let
-  # Constants (must match gateway.nix)
+  # Constants (must match tproxy.nix)
   tproxyPort = 7894;
   routingMark = 6666;
 

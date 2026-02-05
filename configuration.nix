@@ -9,8 +9,8 @@
 
 {
   imports = [
-    ./modules/gateway.nix
-    ./modules/mihomo-subscribe.nix
+    ./modules/tproxy.nix
+    ./modules/mihomo.nix
     # LXC container support (no privilege required)
     "${modulesPath}/virtualisation/lxc-container.nix"
   ];
