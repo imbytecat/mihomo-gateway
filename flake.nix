@@ -1,5 +1,5 @@
 {
-  description = "Mihomo Gateway - NixOS LXC 透明代理网关";
+  description = "Mihomo Gateway - NixOS VM 透明代理网关";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -17,7 +17,7 @@
 
       packages.${system} = {
         default = self.nixosConfigurations.default.config.system.build.toplevel;
-        tarball = self.nixosConfigurations.default.config.system.build.tarball;
+        image = self.nixosConfigurations.default.config.system.build.image;
       };
 
       devShells.${system}.default = pkgs.mkShell {

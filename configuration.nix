@@ -1,4 +1,4 @@
-# Mihomo 网关 - NixOS 配置
+# Mihomo 网关 - NixOS VM 配置
 {
   config,
   pkgs,
@@ -11,25 +11,82 @@
   imports = [
     ./modules/tproxy.nix
     ./modules/mihomo.nix
-    "${modulesPath}/virtualisation/proxmox-lxc.nix"
+    "${modulesPath}/profiles/qemu-guest.nix"
     "${modulesPath}/profiles/minimal.nix"
     "${modulesPath}/profiles/perlless.nix"
     "${modulesPath}/profiles/headless.nix"
     "${modulesPath}/profiles/image-based-appliance.nix"
+    "${modulesPath}/image/repart.nix"
   ];
 
   system.stateVersion = "25.11";
   i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" ];
 
-  proxmoxLXC.manageHostName = true;
-  networking = {
-    hostName = "mihomo-gateway";
-    firewall.enable = false;
-    useHostResolvConf = lib.mkForce true;
+  # Bootloader
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = false;
+  boot.growPartition = true;
+
+  # Serial console for Proxmox
+  boot.kernelParams = [
+    "console=ttyS0,115200n8"
+    "console=tty0"
+  ];
+
+  # QEMU guest agent
+  services.qemuGuest.enable = true;
+
+  # Filesystem
+  fileSystems."/" = {
+    device = "/dev/disk/by-label/nixos";
+    fsType = "ext4";
+    autoResize = true;
   };
 
-  systemd.network.networks."50-eth" = {
-    matchConfig.Name = "eth*";
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-label/ESP";
+    fsType = "vfat";
+    options = [ "fmask=0077" "dmask=0077" ];
+  };
+
+  # Image configuration
+  image.repart = {
+    name = "mihomo-gateway";
+    partitions = {
+      "10-esp" = {
+        contents = {
+          "/EFI/BOOT/BOOTX64.EFI".source = "${pkgs.systemd}/lib/systemd/boot/efi/systemd-bootx64.efi";
+        };
+        repartConfig = {
+          Type = "esp";
+          Format = "vfat";
+          SizeMinBytes = "512M";
+          SizeMaxBytes = "512M";
+          Label = "ESP";
+        };
+      };
+      "20-root" = {
+        storePaths = [ config.system.build.toplevel ];
+        repartConfig = {
+          Type = "root";
+          Format = "ext4";
+          Label = "nixos";
+          Minimize = "guess";
+        };
+      };
+    };
+  };
+
+  # Networking
+  networking = {
+    hostName = "mihomo-gateway";
+    useNetworkd = true;
+    useDHCP = false;
+    firewall.enable = false;
+  };
+
+  systemd.network.networks."50-ens" = {
+    matchConfig.Name = "ens*";
     networkConfig.DHCP = "yes";
   };
 
@@ -37,9 +94,12 @@
   time.timeZone = "Asia/Shanghai";
   environment.systemPackages = with pkgs; [ micro ];
 
-  services.openssh.settings = {
-    PermitRootLogin = "prohibit-password";
-    PasswordAuthentication = false;
+  services.openssh = {
+    enable = true;
+    settings = {
+      PermitRootLogin = "prohibit-password";
+      PasswordAuthentication = false;
+    };
   };
 
   users.users.root = {

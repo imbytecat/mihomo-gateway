@@ -1,11 +1,11 @@
 # Mihomo Gateway
 
-Proxmox VE LXC 透明代理网关，使用 NixOS + Mihomo + nftables TPROXY。
+NixOS VM 透明代理网关，使用 Mihomo + nftables TPROXY。
 
 ## 特性
 
 - **TPROXY 模式**: 内核态重定向，比 TUN 性能更好
-- **Proxmox VE**: 专为 PVE 设计的 LXC 容器镜像
+- **VM 镜像**: raw 格式，支持 Proxmox VE、QEMU/KVM 等平台
 - **NixOS Flakes**: 声明式配置，可复现构建
 - **生产级加固**: 原子更新、systemd 沙箱、自动重启
 - **IPv6 安全**: 阻断 IPv6 转发，防止流量绕过代理
@@ -13,20 +13,39 @@ Proxmox VE LXC 透明代理网关，使用 NixOS + Mihomo + nftables TPROXY。
 ## 快速开始
 
 ```bash
-nix build .#tarball  # 构建 LXC tarball
+nix build .#image  # 构建 VM 镜像
 ```
 
-输出位于 `./result/tarball/*.tar.xz`
+输出位于 `./result/` (raw 格式)
 
-## 部署
+## Proxmox VE 部署
 
-1. 将 tarball 导入 Proxmox VE
-2. 配置订阅 URL（见下方）
-3. 启动容器
+### 1. 导入镜像
 
-### 配置订阅
+```bash
+# 解压 (如果是压缩版本)
+zstd -d mihomo-gateway.raw.zst
 
-创建环境变量文件：
+# 创建 VM
+qm create 100 --name mihomo-gateway --memory 512 --cores 1 --net0 virtio,bridge=vmbr0
+
+# 导入磁盘
+qm importdisk 100 mihomo-gateway.raw local-lvm
+
+# 配置 VM (UEFI 启动)
+qm set 100 --virtio0 local-lvm:vm-100-disk-0
+qm set 100 --boot order=virtio0
+qm set 100 --bios ovmf
+qm set 100 --efidisk0 local-lvm:1,format=raw,efitype=4m,pre-enrolled-keys=0
+qm set 100 --serial0 socket --vga serial0
+
+# 启动
+qm start 100
+```
+
+### 2. 配置订阅
+
+SSH 登录后创建环境变量文件：
 
 ```bash
 cat > /etc/mihomo/mihomo.env << 'EOF'
@@ -82,7 +101,7 @@ secret: <从 SECRET 环境变量读取>
 ## 命令
 
 ```bash
-nix build .#tarball  # 构建 LXC tarball
+nix build .#image    # 构建 VM 镜像
 nix build .#default  # 构建系统配置
 nix develop          # 开发 shell
 nix fmt              # 格式化代码
@@ -97,7 +116,7 @@ rm -rf result        # 清理输出
 mihomo-gateway/
 ├── flake.nix              # Flake 入口
 ├── flake.lock             # 版本锁定
-├── configuration.nix      # NixOS 配置 (薄层)
+├── configuration.nix      # NixOS 配置
 └── modules/
     ├── constants.nix      # 共享常量 (端口、标记等)
     ├── tproxy.nix         # TPROXY 网络层 (sysctl + routing + nftables)

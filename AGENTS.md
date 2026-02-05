@@ -4,10 +4,10 @@
 
 ## 项目概述
 
-**Mihomo Gateway** - Proxmox VE LXC 透明代理网关。
+**Mihomo Gateway** - NixOS VM 透明代理网关。
 
 - 使用 NixOS + Mihomo + nftables TPROXY
-- 输出 LXC tarball，专为 Proxmox VE 设计
+- 输出 qcow2 VM 镜像，支持 Proxmox VE、QEMU/KVM 等平台
 
 ## 工具链
 
@@ -22,7 +22,7 @@ NixOS 构建需要 Nix，可在 Linux/macOS/WSL2 运行。
 ## 构建命令
 
 ```bash
-nix build .#tarball  # 构建 LXC tarball
+nix build .#image    # 构建 VM 镜像 (qcow2)
 nix build .#default  # 构建系统配置
 nix develop          # 开发 shell
 nix fmt              # 格式化代码
@@ -36,7 +36,7 @@ nix flake update     # 更新依赖
 mihomo-gateway/
 ├── flake.nix              # Flake 入口
 ├── flake.lock             # 版本锁定
-├── configuration.nix      # NixOS 配置 (薄层)
+├── configuration.nix      # NixOS 配置
 └── modules/
     ├── constants.nix      # 共享常量 (端口、标记等)
     ├── tproxy.nix         # TPROXY 网络层 (sysctl + routing + nftables)
@@ -75,7 +75,6 @@ chore: 杂项维护
 - 需要 Nix (Linux/macOS/WSL2)
 - Windows 用户使用 WSL2
 - `flake.lock` 锁定依赖版本，确保可复现
-- **无需特权**: LXC tarball 构建不需要 root 或 KVM
 
 ### TPROXY 透明代理
 

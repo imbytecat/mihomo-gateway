@@ -9,7 +9,7 @@ on:
         type: string
 
 env:
-  ARTIFACT_NAME: mihomo-gateway-lxc
+  ARTIFACT_NAME: mihomo-gateway
 
 jobs:
   build:
@@ -24,26 +24,34 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
 
-      - name: Build LXC tarball
-        run: nix build .#tarball
+      - name: Build VM image
+        run: nix build .#image
 
       - name: Prepare artifact
         id: artifact
         run: |
-          TARBALL=$(find ./result/tarball -name "*.tar.xz" -type f | head -1)
-          if [ -z "$TARBALL" ]; then
-            echo "Error: No tarball found"
+          IMAGE=$(find ./result -name "*.qcow2" -type f | head -1)
+          if [ -z "$IMAGE" ]; then
+            IMAGE=$(find ./result -name "*.raw" -type f | head -1)
+          fi
+          if [ -z "$IMAGE" ]; then
+            echo "Error: No image found"
             exit 1
           fi
 
-          FILENAME=$(basename "$TARBALL")
-          SIZE=$(du -h "$TARBALL" | cut -f1)
+          FILENAME=$(basename "$IMAGE")
+          SIZE=$(du -h "$IMAGE" | cut -f1)
 
-          echo "tarball=$TARBALL" >> $GITHUB_OUTPUT
-          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
-          echo "size=$SIZE" >> $GITHUB_OUTPUT
+          # Compress with zstd
+          zstd -19 -T0 "$IMAGE" -o "${IMAGE}.zst"
+          COMPRESSED="${IMAGE}.zst"
+          COMPRESSED_SIZE=$(du -h "$COMPRESSED" | cut -f1)
 
-          echo "Found: $FILENAME ($SIZE)"
+          echo "image=$COMPRESSED" >> $GITHUB_OUTPUT
+          echo "filename=${FILENAME}.zst" >> $GITHUB_OUTPUT
+          echo "size=$COMPRESSED_SIZE" >> $GITHUB_OUTPUT
+
+          echo "Found: $FILENAME ($SIZE) -> compressed: $COMPRESSED_SIZE"
 
       - name: Generate release tag
         id: tag
@@ -51,7 +59,6 @@ jobs:
           if [ -n "${{ inputs.tag_name }}" ]; then
             TAG="${{ inputs.tag_name }}"
           else
-            # 自动生成 tag: v{date}-{short_sha}
             TAG="v$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
@@ -61,16 +68,45 @@ jobs:
         id: notes
         run: |
           BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          SHA256=$(sha256sum ${{ steps.artifact.outputs.tarball }} | awk '{print $1}')
+          SHA256=$(sha256sum ${{ steps.artifact.outputs.image }} | awk '{print $1}')
           
-          cat << EOF > release_notes.md
+          cat << 'EOF' > release_notes.md
+          ## Mihomo Gateway VM Image
+
           | 字段 | 值 |
           |------|-----|
-          | Commit | \`${{ github.sha }}\` |
+          | Commit | `${{ github.sha }}` |
           | Build Date | ${BUILD_DATE} |
           | Size | ${{ steps.artifact.outputs.size }} |
-          | SHA256 | \`${SHA256}\` |
+          | SHA256 | `${SHA256}` |
+
+          ### Proxmox VE 导入
+
+          ```bash
+          # 1. 解压镜像
+          zstd -d mihomo-gateway.raw.zst
+
+          # 2. 创建 VM
+          qm create 100 --name mihomo-gateway --memory 512 --cores 1 --net0 virtio,bridge=vmbr0
+
+          # 3. 导入磁盘
+          qm importdisk 100 mihomo-gateway.raw local-lvm
+
+          # 4. 配置 VM
+          qm set 100 --virtio0 local-lvm:vm-100-disk-0
+          qm set 100 --boot order=virtio0
+          qm set 100 --bios ovmf
+          qm set 100 --efidisk0 local-lvm:1,format=raw,efitype=4m,pre-enrolled-keys=0
+          qm set 100 --serial0 socket --vga serial0
+
+          # 5. 启动
+          qm start 100
+          ```
           EOF
+
+          # Replace variables
+          sed -i "s|\${BUILD_DATE}|${BUILD_DATE}|g" release_notes.md
+          sed -i "s|\${SHA256}|${SHA256}|g" release_notes.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -80,6 +116,6 @@ jobs:
           body_path: release_notes.md
           draft: false
           prerelease: false
-          files: ${{ steps.artifact.outputs.tarball }}
+          files: ${{ steps.artifact.outputs.image }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
