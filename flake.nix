@@ -29,7 +29,7 @@
         default = nixosConfig.config.system.build.toplevel;
         image = import "${nixpkgs}/nixos/lib/make-disk-image.nix" {
           inherit pkgs lib;
-          name = "mihomo-gateway-${version}";
+          baseName = "mihomo-gateway-${version}";
           config = nixosConfig.config;
           format = "qcow2-compressed";
           partitionTableType = "efi";
