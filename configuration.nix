@@ -63,7 +63,17 @@
     linkConfig.RequiredForOnline = "routable";
   };
 
-  services.resolved.enable = true;
+  # DNS: Stubless Resolved - 从 DHCP 获取 DNS，禁用 stub listener 避免与 Mihomo 冲突
+  services.resolved = {
+    enable = true;
+    settings.Resolve = {
+      FallbackDNS = "";
+      DNSSEC = "no";
+      DNSStubListener = "no";
+    };
+  };
+  environment.etc."resolv.conf".source = lib.mkForce "/run/systemd/resolve/resolv.conf";
+
   time.timeZone = "Asia/Shanghai";
   environment.systemPackages = with pkgs; [ micro ];
 
