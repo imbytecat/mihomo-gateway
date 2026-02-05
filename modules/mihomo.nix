@@ -14,11 +14,11 @@ let
   envFile = "/etc/mihomo/mihomo.env";
 
   baseConfig = {
+    allow-lan = true;
+    bind-address = "*";
+    external-controller = "0.0.0.0:9090";
     tproxy-port = tproxyPort;
     routing-mark = routingMark;
-    bind-address = "*";
-    allow-lan = true;
-    external-controller = "0.0.0.0:9090";
     find-process-mode = "off";
     ipv6 = false;
     dns = {
