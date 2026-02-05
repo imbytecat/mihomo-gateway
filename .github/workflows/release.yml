@@ -30,10 +30,12 @@ jobs:
       - name: Prepare artifact
         id: artifact
         run: |
-          # 找到 qcow2 镜像
-          IMAGE=$(find ./result -name "*.qcow2" -type f | head -1)
-          if [ -z "$IMAGE" ]; then
-            echo "Error: No qcow2 image found"
+          # make-disk-image.nix 输出直接在 result 下
+          IMAGE="./result/nixos.qcow2"
+          if [ ! -f "$IMAGE" ]; then
+            echo "Error: No qcow2 image found at $IMAGE"
+            echo "Contents of ./result:"
+            ls -la ./result/ || true
             exit 1
           fi
 
