@@ -18,6 +18,7 @@ let
     routing-mark = routingMark;
     bind-address = "*";
     allow-lan = true;
+    external-controller = "0.0.0.0:9090";
     find-process-mode = "off";
     ipv6 = false;
     dns = {
