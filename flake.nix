@@ -10,19 +10,16 @@
       pkgs = nixpkgs.legacyPackages.${system};
     in
     {
-      # NixOS Configuration
       nixosConfigurations.default = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [ ./configuration.nix ];
       };
 
-      # Build outputs
       packages.${system} = {
         default = self.nixosConfigurations.default.config.system.build.toplevel;
         tarball = self.nixosConfigurations.default.config.system.build.tarball;
       };
 
-      # Development shell
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
           nil
@@ -30,10 +27,8 @@
         ];
       };
 
-      # Formatter
       formatter.${system} = pkgs.nixfmt;
 
-      # Checks
       checks.${system}.build = self.packages.${system}.default;
     };
 }
