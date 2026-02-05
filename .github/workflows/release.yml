@@ -70,18 +70,12 @@ jobs:
           SHA256=$(sha256sum ${{ steps.artifact.outputs.tarball }} | awk '{print $1}')
           
           cat << EOF > release_notes.md
-          ## Mihomo Gateway LXC Tarball
-
-          透明代理网关 LXC 镜像，使用 Mihomo + nftables TPROXY。
-
-          详见 [README](https://github.com/${{ github.repository }}#readme)
-
-          ### 构建信息
-
-          - **Commit**: ${{ github.sha }}
-          - **Build Date**: ${BUILD_DATE}
-          - **Size**: ${{ steps.artifact.outputs.size }}
-          - **SHA256**: ${SHA256}
+          | 字段 | 值 |
+          |------|-----|
+          | Commit | \`${{ github.sha }}\` |
+          | Build Date | ${BUILD_DATE} |
+          | Size | ${{ steps.artifact.outputs.size }} |
+          | SHA256 | \`${SHA256}\` |
           EOF
 
       - name: Create Release
