@@ -1,8 +1,6 @@
 ---
 name: mihomo
-description: |
-  Mihomo (Clash Meta) proxy kernel reference. Use when working with Mihomo configuration, TPROXY setup, proxy rules, or subscription management.
-  Triggers: mihomo, clash meta, tproxy, proxy rules, subscription config, mihomo validation, mihomo CLI.
+description: "Mihomo (Clash Meta) proxy kernel reference. Use when working with Mihomo configuration, TPROXY setup, proxy rules, or subscription management. Triggers: mihomo, clash meta, tproxy, proxy rules, subscription config, mihomo validation, mihomo CLI."
 ---
 
 # Mihomo
