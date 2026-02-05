@@ -1,4 +1,4 @@
-# Mihomo Gateway - NixOS Configuration
+# Mihomo 网关 - NixOS 配置
 {
   config,
   pkgs,

@@ -1,4 +1,4 @@
-# Mihomo service + subscription management
+# Mihomo 服务 + 订阅管理
 {
   config,
   pkgs,

@@ -1,4 +1,4 @@
-# TPROXY network layer (sysctl + routing + nftables)
+# TPROXY 网络层 (sysctl + routing + nftables)
 { config, lib, ... }:
 
 let
@@ -13,7 +13,7 @@ in
   boot.kernel.sysctl = {
     "net.ipv4.ip_forward" = 1;
 
-    # Required for TPROXY
+    # TPROXY 必需
     "net.ipv4.conf.all.rp_filter" = 0;
     "net.ipv4.conf.default.rp_filter" = 0;
     "net.ipv4.conf.all.src_valid_mark" = 1;
@@ -21,7 +21,7 @@ in
     "net.ipv4.conf.all.send_redirects" = 0;
     "net.ipv4.conf.default.send_redirects" = 0;
 
-    # Block IPv6 forwarding to prevent bypass (gateway does not proxy IPv6)
+    # 阻断 IPv6 转发，防止绕过代理
     "net.ipv6.conf.all.forwarding" = 0;
     "net.ipv6.conf.default.forwarding" = 0;
   };
