@@ -170,14 +170,8 @@ in
       Restart = "on-failure";
       RestartSec = "5s";
 
-      AmbientCapabilities = lib.mkForce [
-        "CAP_NET_ADMIN"
-        "CAP_NET_RAW"
-      ];
-      CapabilityBoundingSet = lib.mkForce [
-        "CAP_NET_ADMIN"
-        "CAP_NET_RAW"
-      ];
+      AmbientCapabilities = lib.mkForce [ "CAP_NET_ADMIN" ];
+      CapabilityBoundingSet = lib.mkForce [ "CAP_NET_ADMIN" ];
       PrivateUsers = lib.mkForce false;
 
       NoNewPrivileges = true;
