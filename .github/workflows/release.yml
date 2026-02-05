@@ -30,10 +30,10 @@ jobs:
       - name: Prepare artifact
         id: artifact
         run: |
-          # 找到压缩后的镜像 (.raw.zst)
-          IMAGE=$(find ./result -name "*.raw.zst" -type f | head -1)
+          # 找到 qcow2 镜像
+          IMAGE=$(find ./result -name "*.qcow2" -type f | head -1)
           if [ -z "$IMAGE" ]; then
-            echo "Error: No compressed image found"
+            echo "Error: No qcow2 image found"
             exit 1
           fi
 
@@ -76,14 +76,14 @@ jobs:
           ### Proxmox VE 导入
 
           ```bash
-          # 1. 解压镜像
-          zstd -d mihomo-gateway.raw.zst
+          # 1. 上传到 Proxmox 存储
+          scp mihomo-gateway.qcow2 pve:/var/lib/vz/images/
 
           # 2. 创建 VM
           qm create 100 --name mihomo-gateway --memory 512 --cores 1 --net0 virtio,bridge=vmbr0
 
           # 3. 导入磁盘
-          qm importdisk 100 mihomo-gateway.raw local-lvm
+          qm importdisk 100 /var/lib/vz/images/mihomo-gateway.qcow2 local-lvm
 
           # 4. 配置 VM
           qm set 100 --virtio0 local-lvm:vm-100-disk-0

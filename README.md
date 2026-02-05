@@ -5,7 +5,7 @@ NixOS VM 透明代理网关，使用 Mihomo + nftables TPROXY。
 ## 特性
 
 - **TPROXY 模式**: 内核态重定向，比 TUN 性能更好
-- **VM 镜像**: raw 格式，支持 Proxmox VE、QEMU/KVM 等平台
+- **VM 镜像**: qcow2 格式，支持 Proxmox VE、QEMU/KVM、Libvirt 等平台
 - **NixOS Flakes**: 声明式配置，可复现构建
 - **生产级加固**: 原子更新、systemd 沙箱、自动重启
 - **IPv6 安全**: 阻断 IPv6 转发，防止流量绕过代理
@@ -13,24 +13,24 @@ NixOS VM 透明代理网关，使用 Mihomo + nftables TPROXY。
 ## 快速开始
 
 ```bash
-nix build .#image  # 构建 VM 镜像
+nix build .#image  # 构建 VM 镜像 (qcow2)
 ```
 
-输出位于 `./result/` (raw 格式)
+输出位于 `./result/`
 
 ## Proxmox VE 部署
 
 ### 1. 导入镜像
 
 ```bash
-# 解压 (如果是压缩版本)
-zstd -d mihomo-gateway.raw.zst
+# 上传镜像到 Proxmox
+scp nixos.qcow2 pve:/var/lib/vz/images/
 
 # 创建 VM
 qm create 100 --name mihomo-gateway --memory 512 --cores 1 --net0 virtio,bridge=vmbr0
 
 # 导入磁盘
-qm importdisk 100 mihomo-gateway.raw local-lvm
+qm importdisk 100 /var/lib/vz/images/nixos.qcow2 local-lvm
 
 # 配置 VM (UEFI 启动)
 qm set 100 --virtio0 local-lvm:vm-100-disk-0

@@ -8,6 +8,8 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
+      lib = nixpkgs.lib;
+      nixosConfig = self.nixosConfigurations.default;
     in
     {
       nixosConfigurations.default = nixpkgs.lib.nixosSystem {
@@ -16,8 +18,15 @@
       };
 
       packages.${system} = {
-        default = self.nixosConfigurations.default.config.system.build.toplevel;
-        image = self.nixosConfigurations.default.config.system.build.image;
+        default = nixosConfig.config.system.build.toplevel;
+        image = import "${nixpkgs}/nixos/lib/make-disk-image.nix" {
+          inherit pkgs lib;
+          config = nixosConfig.config;
+          format = "qcow2-compressed";
+          partitionTableType = "efi";
+          diskSize = "auto";
+          additionalSpace = "128M";
+        };
       };
 
       devShells.${system}.default = pkgs.mkShell {
