@@ -65,43 +65,14 @@ jobs:
           BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
           SHA256=$(sha256sum ${{ steps.artifact.outputs.image }} | awk '{print $1}')
           
-          cat << 'EOF' > release_notes.md
-          ## Mihomo Gateway VM Image
-
+          cat << EOF > release_notes.md
           | 字段 | 值 |
           |------|-----|
-          | Commit | `${{ github.sha }}` |
+          | Commit | \`${{ github.sha }}\` |
           | Build Date | ${BUILD_DATE} |
           | Size | ${{ steps.artifact.outputs.size }} |
-          | SHA256 | `${SHA256}` |
-
-          ### Proxmox VE 导入
-
-          ```bash
-          # 1. 上传到 Proxmox 存储
-          scp mihomo-gateway.qcow2 pve:/var/lib/vz/images/
-
-          # 2. 创建 VM
-          qm create 100 --name mihomo-gateway --memory 512 --cores 1 --net0 virtio,bridge=vmbr0
-
-          # 3. 导入磁盘
-          qm importdisk 100 /var/lib/vz/images/mihomo-gateway.qcow2 local-lvm
-
-          # 4. 配置 VM
-          qm set 100 --virtio0 local-lvm:vm-100-disk-0
-          qm set 100 --boot order=virtio0
-          qm set 100 --bios ovmf
-          qm set 100 --efidisk0 local-lvm:1,format=raw,efitype=4m,pre-enrolled-keys=0
-          qm set 100 --serial0 socket --vga serial0
-
-          # 5. 启动
-          qm start 100
-          ```
+          | SHA256 | \`${SHA256}\` |
           EOF
-
-          # Replace variables
-          sed -i "s|\${BUILD_DATE}|${BUILD_DATE}|g" release_notes.md
-          sed -i "s|\${SHA256}|${SHA256}|g" release_notes.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

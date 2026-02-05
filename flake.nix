@@ -25,7 +25,8 @@
           format = "qcow2-compressed";
           partitionTableType = "efi";
           diskSize = "auto";
-          additionalSpace = "128M";
+          additionalSpace = "64M";
+          copyChannel = false;
         };
       };
 

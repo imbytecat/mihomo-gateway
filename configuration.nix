@@ -19,6 +19,10 @@
   system.stateVersion = "25.11";
   i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" ];
 
+  # Appliance 模式优化
+  nix.enable = false;
+  boot.initrd.includeDefaultModules = false;
+
   boot.loader.grub = {
     enable = true;
     device = "nodev";
