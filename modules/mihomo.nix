@@ -7,7 +7,7 @@
 
 let
   constants = import ./constants.nix;
-  inherit (constants) tproxyPort routingMark;
+  inherit (constants) tproxyPort dnsPort routingMark;
 
   stateDir = "/var/lib/mihomo";
   configFile = "${stateDir}/config.yaml";
@@ -22,7 +22,7 @@ let
     ipv6 = false;
     dns = {
       enable = true;
-      listen = "0.0.0.0:53";
+      listen = "0.0.0.0:${toString dnsPort}";
       ipv6 = false;
     };
   };
@@ -173,12 +173,10 @@ in
       AmbientCapabilities = lib.mkForce [
         "CAP_NET_ADMIN"
         "CAP_NET_RAW"
-        "CAP_NET_BIND_SERVICE"
       ];
       CapabilityBoundingSet = lib.mkForce [
         "CAP_NET_ADMIN"
         "CAP_NET_RAW"
-        "CAP_NET_BIND_SERVICE"
       ];
       PrivateUsers = lib.mkForce false;
 

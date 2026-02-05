@@ -5,6 +5,7 @@ let
   constants = import ./constants.nix;
   inherit (constants)
     tproxyPort
+    dnsPort
     routingMark
     routingTable
     ;
@@ -37,6 +38,13 @@ in
           ip daddr { 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 } return
           fib daddr type { local, broadcast, multicast } return
           meta l4proto { tcp, udp } tproxy to :${toString tproxyPort} meta mark set ${toString routingMark}
+        }
+      }
+
+      table inet mihomo-dns {
+        chain prerouting {
+          type nat hook prerouting priority dstnat; policy accept;
+          meta l4proto { tcp, udp } th dport 53 redirect to :${toString dnsPort}
         }
       }
 
