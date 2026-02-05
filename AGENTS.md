@@ -38,6 +38,7 @@ mihomo-gateway/
 ├── flake.lock             # 版本锁定
 ├── configuration.nix      # NixOS 配置 (薄层)
 └── modules/
+    ├── constants.nix      # 共享常量 (端口、标记等)
     ├── tproxy.nix         # TPROXY 网络层 (sysctl + routing + nftables)
     └── mihomo.nix         # Mihomo 服务 + 订阅管理
 ```
@@ -46,7 +47,7 @@ mihomo-gateway/
 
 ### Nix
 
-- 使用 `nixfmt` 格式化 (RFC style)
+- 使用 `nixfmt` 格式化 (RFC style, 通过 `nix develop -c nixfmt` 或 `nix fmt`)
 - 模块化：每个功能一个 `.nix` 文件
 - 使用 `let ... in` 定义局部变量
 

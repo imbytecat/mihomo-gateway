@@ -3,11 +3,14 @@
 { config, lib, ... }:
 
 let
-  # Centralized constants (easy to audit)
-  tproxyPort = 7894;
-  routingMark = 6666; # Mihomo's routing-mark for bypass
-  fwmark = 1; # Fwmark for policy routing
-  routingTable = 100;
+  # Import shared constants
+  constants = import ./constants.nix;
+  inherit (constants)
+    tproxyPort
+    routingMark
+    fwmark
+    routingTable
+    ;
 in
 {
   # ============================================

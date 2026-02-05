@@ -40,10 +40,8 @@
   # Timezone
   time.timeZone = "Asia/Shanghai";
 
-  # Base packages
+  # Base packages (minimal for gateway)
   environment.systemPackages = with pkgs; [
-    curl
-    htop
     vim
   ];
 

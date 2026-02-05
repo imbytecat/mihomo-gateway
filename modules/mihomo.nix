@@ -8,13 +8,13 @@
 }:
 
 let
-  # Constants (must match tproxy.nix)
-  tproxyPort = 7894;
-  routingMark = 6666;
+  # Import shared constants
+  constants = import ./constants.nix;
+  inherit (constants) tproxyPort routingMark;
 
-  # Paths
-  configDir = "/var/lib/mihomo";
-  configFile = "${configDir}/config.yaml";
+  # Paths (relative to StateDirectory)
+  stateDir = "/var/lib/mihomo"; # systemd StateDirectory
+  configFile = "${stateDir}/config.yaml";
   envFile = "/etc/mihomo/mihomo.env";
   tempConfig = "/tmp/mihomo-new.yaml";
 
@@ -23,6 +23,7 @@ let
     # Mihomo Fallback Configuration
     # This is used when subscription is unavailable
 
+    # TPROXY settings (must match tproxy.nix)
     tproxy-port: ${toString tproxyPort}
     routing-mark: ${toString routingMark}
 
@@ -30,7 +31,10 @@ let
     bind-address: "*"
     mode: direct
     log-level: info
+    ipv6: false
+    find-process-mode: "off"
 
+    # DNS is required even in direct mode for fake-ip resolution
     dns:
       enable: true
       listen: 0.0.0.0:53
@@ -120,7 +124,7 @@ in
 
   # Create config directories
   systemd.tmpfiles.rules = [
-    "d ${configDir} 0755 root root -"
+    "d ${stateDir} 0755 root root -"
     "d /etc/mihomo 0755 root root -"
   ];
 
