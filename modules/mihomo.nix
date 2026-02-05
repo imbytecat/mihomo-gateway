@@ -85,7 +85,7 @@ let
     fi
 
     echo "Validating configuration..."
-    if ! output=$(${pkgs.mihomo}/bin/mihomo -t -f "$tmp" 2>&1); then
+    if ! output=$(${pkgs.mihomo}/bin/mihomo -t -f "$tmp" -d "${stateDir}" 2>&1); then
       echo "Validation failed:"
       echo "$output"
       exit 1
