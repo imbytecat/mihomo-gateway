@@ -15,17 +15,11 @@
     "${modulesPath}/profiles/minimal.nix"
     "${modulesPath}/profiles/perlless.nix"
     "${modulesPath}/profiles/headless.nix"
+    "${modulesPath}/profiles/image-based-appliance.nix"
   ];
 
   system.stateVersion = "25.11";
-  system.switch.enable = false;
-
-  # 镜像优化
-  documentation.enable = false;
   i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" ];
-  environment.defaultPackages = lib.mkForce [ ];
-  programs.command-not-found.enable = false;
-  nix.enable = false;
 
   networking = {
     hostName = "mihomo-gateway";
@@ -41,9 +35,7 @@
   };
 
   services.resolved.enable = false;
-
   time.timeZone = "Asia/Shanghai";
-
   environment.systemPackages = with pkgs; [ micro ];
 
   services.openssh = {
@@ -54,5 +46,10 @@
     };
   };
 
-  users.users.root.hashedPassword = null;
+  users.users.root = {
+    hashedPassword = "!";
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDRTOo48gzzRGT+bF9dzJCFJu61YgsQVONFtxU9kTPIg"
+    ];
+  };
 }
