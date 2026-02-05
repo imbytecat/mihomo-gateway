@@ -28,33 +28,21 @@ let
 
     allow-lan: true
     bind-address: "*"
-    mode: rule
+    mode: direct
     log-level: info
 
     dns:
       enable: true
       listen: 0.0.0.0:53
+      ipv6: false
       enhanced-mode: fake-ip
       fake-ip-range: 198.18.0.1/16
       default-nameserver:
-        - 8.8.8.8
+        - 223.5.5.5
+        - 119.29.29.29
       nameserver:
-        - https://dns.alidns.com/dns-query
-
-    proxies: []
-
-    proxy-groups:
-      - name: PROXY
-        type: select
-        proxies:
-          - DIRECT
-
-    rules:
-      - IP-CIDR,127.0.0.0/8,DIRECT
-      - IP-CIDR,10.0.0.0/8,DIRECT
-      - IP-CIDR,172.16.0.0/12,DIRECT
-      - IP-CIDR,192.168.0.0/16,DIRECT
-      - MATCH,DIRECT
+        - https://dns.alidns.com/dns-query#h3=true
+        - https://doh.pub/dns-query
   '';
 
   # Subscription update script with validation
