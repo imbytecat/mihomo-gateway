@@ -12,9 +12,17 @@
     ./modules/tproxy.nix
     ./modules/mihomo.nix
     "${modulesPath}/virtualisation/lxc-container.nix"
+    "${modulesPath}/profiles/minimal.nix"
   ];
 
   system.stateVersion = "25.11";
+
+  # 镜像优化
+  documentation.enable = false;
+  i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" ];
+  environment.defaultPackages = lib.mkForce [ ];
+  programs.command-not-found.enable = false;
+  nix.enable = false;
 
   networking = {
     hostName = "mihomo-gateway";
@@ -33,7 +41,7 @@
 
   time.timeZone = "Asia/Shanghai";
 
-  environment.systemPackages = with pkgs; [ vim ];
+  environment.systemPackages = with pkgs; [ nano ];
 
   services.openssh = {
     enable = true;
