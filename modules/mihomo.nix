@@ -14,28 +14,38 @@ let
   configFile = "${stateDir}/config.yaml";
   envFile = "/etc/mihomo/mihomo.env";
 
-  fallbackConfig = pkgs.writeText "fallback.yaml" ''
-    tproxy-port: ${toString tproxyPort}
-    routing-mark: ${toString routingMark}
-    allow-lan: true
-    bind-address: "*"
-    mode: direct
-    log-level: info
-    ipv6: false
-    find-process-mode: "off"
+  # 共享配置 - Single Source of Truth
+  mihomoSettings = {
+    tproxy-port = tproxyPort;
+    routing-mark = routingMark;
+    allow-lan = true;
+    find-process-mode = "off";
+    ipv6 = false;
+    dns = {
+      enable = true;
+      listen = "0.0.0.0:53";
+      ipv6 = false;
+    };
+  };
 
-    dns:
-      enable: true
-      listen: 0.0.0.0:53
-      ipv6: false
-      enhanced-mode: redir-host
-      default-nameserver:
-        - 223.5.5.5
-        - 119.29.29.29
-      nameserver:
-        - https://dns.alidns.com/dns-query#h3=true
-        - https://doh.pub/dns-query
-  '';
+  # Fallback 特有配置
+  fallbackSettings = mihomoSettings // {
+    bind-address = "*";
+    mode = "direct";
+    log-level = "info";
+    dns = mihomoSettings.dns // {
+      enhanced-mode = "redir-host";
+      default-nameserver = [ "223.5.5.5" "119.29.29.29" ];
+      nameserver = [
+        "https://dns.alidns.com/dns-query#h3=true"
+        "https://doh.pub/dns-query"
+      ];
+    };
+  };
+
+  yamlFormat = pkgs.formats.yaml { };
+  settingsYaml = yamlFormat.generate "mihomo-settings.yaml" mihomoSettings;
+  fallbackConfig = yamlFormat.generate "fallback.yaml" fallbackSettings;
 
   subscribeScript = pkgs.writeShellScript "mihomo-subscribe" ''
     set -euo pipefail
@@ -69,16 +79,10 @@ let
       --retry 3 --retry-delay 2 --retry-all-errors \
       -o "$tmp" "$SUBSCRIPTION_URL"
 
-    ${pkgs.yq-go}/bin/yq -i '
-      .tproxy-port = ${toString tproxyPort} |
-      .routing-mark = ${toString routingMark} |
-      .allow-lan = true |
-      .find-process-mode = "off" |
-      .ipv6 = false |
-      .dns.enable = true |
-      .dns.listen = "0.0.0.0:53" |
-      .dns.ipv6 = false
-    ' "$tmp"
+    # Deep merge: 订阅配置在前，共享配置在后覆盖
+    ${pkgs.yq-go}/bin/yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
+      "$tmp" "${settingsYaml}" > "$tmp.merged"
+    mv "$tmp.merged" "$tmp"
 
     if [ -n "''${SECRET:-}" ]; then
       ${pkgs.yq-go}/bin/yq -i '.secret = "'"$SECRET"'"' "$tmp"
