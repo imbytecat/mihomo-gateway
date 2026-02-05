@@ -30,7 +30,7 @@ jobs:
       - name: Prepare artifact
         id: artifact
         run: |
-          IMAGE=$(find ./result -name "*.qcow2" -type f | head -1)
+          IMAGE=$(find -L ./result -name "*.qcow2" -type f | head -1)
           if [ -z "$IMAGE" ] || [ ! -f "$IMAGE" ]; then
             echo "Error: No qcow2 image found"
             echo "Contents of ./result:"
