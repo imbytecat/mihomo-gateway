@@ -41,14 +41,12 @@ jobs:
       - name: Prepare artifact
         id: artifact
         run: |
-          # 找到构建产物
           TARBALL=$(find ./result/tarball -name "*.tar.xz" -type f | head -1)
           if [ -z "$TARBALL" ]; then
             echo "Error: No tarball found"
             exit 1
           fi
 
-          # 获取文件名和大小
           FILENAME=$(basename "$TARBALL")
           SIZE=$(du -h "$TARBALL" | cut -f1)
 
