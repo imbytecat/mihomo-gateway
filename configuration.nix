@@ -59,9 +59,11 @@
   systemd.network.networks."50-ens" = {
     matchConfig.Name = "ens*";
     networkConfig.DHCP = "yes";
+    dhcpV4Config.UseDNS = true;
+    linkConfig.RequiredForOnline = "routable";
   };
 
-  services.resolved.enable = false;
+  services.resolved.enable = true;
   time.timeZone = "Asia/Shanghai";
   environment.systemPackages = with pkgs; [ micro ];
 
