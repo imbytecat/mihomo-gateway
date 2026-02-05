@@ -25,6 +25,10 @@ in
     # 阻断 IPv6 转发，防止绕过代理
     "net.ipv6.conf.all.forwarding" = 0;
     "net.ipv6.conf.default.forwarding" = 0;
+
+    # TCP BBR 拥塞控制
+    "net.core.default_qdisc" = "fq";
+    "net.ipv4.tcp_congestion_control" = "bbr";
   };
 
   networking.nftables = {
