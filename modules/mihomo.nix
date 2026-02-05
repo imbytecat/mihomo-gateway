@@ -85,7 +85,12 @@ let
     fi
 
     echo "Validating configuration..."
-    ${pkgs.mihomo}/bin/mihomo -t -f "$tmp" >/dev/null
+    if ! output=$(${pkgs.mihomo}/bin/mihomo -t -f "$tmp" 2>&1); then
+      echo "Validation failed:"
+      echo "$output"
+      exit 1
+    fi
+    echo "$output"
 
     if [ -f "${configFile}" ] && ${pkgs.diffutils}/bin/cmp -s "$tmp" "${configFile}"; then
       echo "No changes; skip restart"
