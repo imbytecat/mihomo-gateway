@@ -10,6 +10,14 @@
       pkgs = nixpkgs.legacyPackages.${system};
       lib = nixpkgs.lib;
       nixosConfig = self.nixosConfigurations.default;
+
+      version =
+        if self ? shortRev then
+          self.shortRev
+        else if self ? dirtyShortRev then
+          self.dirtyShortRev
+        else
+          "unknown";
     in
     {
       nixosConfigurations.default = nixpkgs.lib.nixosSystem {
@@ -21,6 +29,7 @@
         default = nixosConfig.config.system.build.toplevel;
         image = import "${nixpkgs}/nixos/lib/make-disk-image.nix" {
           inherit pkgs lib;
+          name = "mihomo-gateway-${version}";
           config = nixosConfig.config;
           format = "qcow2-compressed";
           partitionTableType = "efi";
