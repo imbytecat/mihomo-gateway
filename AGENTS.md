@@ -11,31 +11,23 @@
 
 ## 工具链
 
-所有开发工具通过 `nix develop` 获取：
+开发工具通过 `nix develop` 获取：
 
 ```bash
-nix develop          # 进入开发 shell (包含 nil, nixfmt, task)
+nix develop          # 进入开发 shell (包含 nil, nixfmt)
 ```
 
 NixOS 构建需要 Nix，可在 Linux/macOS/WSL2 运行。
 
 ## 构建命令
 
-所有命令通过 [Taskfile](https://taskfile.dev) 执行：
-
 ```bash
-task --list          # 所有命令
-task build           # 构建系统配置
-task tarball         # 构建 LXC tarball
-task dev             # 开发 shell
-task fmt             # 格式化代码
-task check           # 检查 flake
-task update          # 更新依赖
-task clean           # 清理输出
-
-# 原生 nix 命令
-nix fmt              # 格式化
-nix flake check      # 验证构建
+nix build .#tarball  # 构建 LXC tarball
+nix build .#default  # 构建系统配置
+nix develop          # 开发 shell
+nix fmt              # 格式化代码
+nix flake check      # 检查 flake
+nix flake update     # 更新依赖
 ```
 
 ## 目录结构
@@ -45,7 +37,6 @@ mihomo-gateway/
 ├── flake.nix              # Flake 入口
 ├── flake.lock             # 版本锁定
 ├── configuration.nix      # NixOS 配置 (薄层)
-├── Taskfile.yml           # 构建任务
 └── modules/
     ├── gateway.nix        # TPROXY 网关 (sysctl + routing + nftables)
     └── mihomo-subscribe.nix  # Mihomo 服务 + 订阅管理

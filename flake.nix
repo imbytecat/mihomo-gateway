@@ -27,7 +27,6 @@
         packages = with pkgs; [
           nil
           nixfmt
-          go-task
         ];
       };
 
