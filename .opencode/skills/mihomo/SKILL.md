@@ -1,103 +1,58 @@
 ---
 name: mihomo
-description: "Mihomo (Clash Meta) proxy kernel reference. Use when working with Mihomo configuration, TPROXY setup, proxy rules, or subscription management. Triggers: mihomo, clash meta, tproxy, proxy rules, subscription config, mihomo validation, mihomo CLI."
+description: "Mihomo (Clash Meta) 代理内核参考。用于 Mihomo 配置、TPROXY 设置、代理规则或订阅管理。触发词: mihomo, clash meta, tproxy, proxy rules, subscription config。"
 ---
 
-# Mihomo
+# Mihomo 参考指南
 
-## Overview
+## 官方资源
 
-Mihomo is a rule-based network tunnel (fork of Clash). This skill provides official resource references and common patterns for configuration and CLI usage.
+| 资源     | 地址                                              | 用途           |
+| -------- | ------------------------------------------------- | -------------- |
+| 文档     | https://wiki.metacubex.one/config/                | 配置参考       |
+| 源码     | https://github.com/MetaCubeX/mihomo/tree/Meta     | 实现细节       |
+| Alpha 分支 | https://github.com/MetaCubeX/mihomo/tree/Alpha   | 最新特性       |
 
-## Official Resources
+**注意**: 只使用 Meta 或 Alpha 分支，其他分支可能有问题。
 
-| Resource | URL | Use Case |
-|----------|-----|----------|
-| Documentation | https://wiki.metacubex.one/config/ | Configuration reference |
-| Source Code | https://github.com/MetaCubeX/mihomo/tree/Meta | Implementation details, CLI flags |
-| Alpha Branch | https://github.com/MetaCubeX/mihomo/tree/Alpha | Latest features |
-
-IMPORTANT: Only use Meta or Alpha branches. Other branches may have issues.
-
-## CLI Reference
+## CLI 用法
 
 ```bash
-mihomo -h              # Help
-mihomo -t -f <config>  # Validate config (exit 0=success, 1=fail)
-mihomo -d <dir>        # Set config directory
-mihomo -f <file>       # Specify config file
+mihomo -h              # 帮助
+mihomo -t -f <config>  # 验证配置 (0=成功, 1=失败)
+mihomo -d <dir>        # 设置配置目录
+mihomo -f <file>       # 指定配置文件
 ```
 
-## TPROXY Required Fields
-
-When using TPROXY mode, config MUST include:
+## TPROXY 必需字段
 
 ```yaml
-tproxy-port: 7894      # TPROXY listening port
-routing-mark: 6666     # Mark for bypass (must match nftables)
+tproxy-port: 7894      # TPROXY 监听端口
+routing-mark: 6666     # 绕过标记 (须与 nftables 匹配)
 ```
 
-## Common Patterns
+## 常用模式
 
-### Validate Before Apply
+### 先验证后应用
 
 ```bash
 curl -fsSL "$URL" -o /tmp/config.yaml
 mihomo -t -f /tmp/config.yaml && mv /tmp/config.yaml /etc/mihomo/config.yaml
 ```
 
-### Force Inject TPROXY Fields
+### 强制注入 TPROXY 字段
 
 ```bash
 yq -i '.tproxy-port = 7894 | .routing-mark = 6666' config.yaml
 ```
 
-## Lookup Strategy
+## 查阅方法论
 
-CRITICAL: Always cross-validate between source code AND documentation. Neither is complete alone.
+**关键**: 文档和源码需要交叉验证，两者都不完整。
 
-### Step 1: Check Documentation First
-- wiki.metacubex.one/config/ for configuration options and examples
-- Documentation shows recommended values (e.g., routing-mark: 6666)
-
-### Step 2: Verify in Source Code
-Use webfetch to get raw files from correct branches:
-```
-https://raw.githubusercontent.com/MetaCubeX/mihomo/Meta/<path>
-https://raw.githubusercontent.com/MetaCubeX/mihomo/Alpha/<path>
-```
-
-Key source files:
-- config/config.go - Config struct definitions, default values
-- main.go - CLI flags
-- hub/executor/ - Runtime behavior
-
-### Step 3: Cross-Validate
-- Source shows actual defaults (e.g., routing-mark defaults to 0 in code)
-- Documentation shows recommended usage (e.g., routing-mark: 6666 in examples)
-- Both are needed for complete understanding
-
-## Search Tools
-
-DO NOT use grep_app for mihomo - it may not filter by branch correctly.
-
-CORRECT approach:
-```
-webfetch https://raw.githubusercontent.com/MetaCubeX/mihomo/Meta/config/config.go
-webfetch https://wiki.metacubex.one/config/general/
-```
-
-WRONG approach:
-```
-grep_app_searchGitHub repo:MetaCubeX/mihomo  # May search wrong branches
-```
-
-## Default Values Reference
-
-| Field | Source Default | Doc Example |
-|-------|----------------|-------------|
-| tproxy-port | 0 (disabled) | 7894 |
-| routing-mark | 0 (disabled) | 6666 |
-| mixed-port | 0 (disabled) | 7890 |
-| allow-lan | false | true |
-| find-process-mode | strict | off (for routers)
+1. **先查文档** - wiki.metacubex.one/config/ 获取配置选项和示例
+2. **再查源码** - 验证实际默认值和行为
+   - `config/config.go` - 配置结构定义
+   - `main.go` - CLI 参数
+   - `hub/executor/` - 运行时行为
+3. **交叉验证** - 源码显示实际默认值，文档显示推荐用法
