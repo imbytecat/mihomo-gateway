@@ -35,6 +35,8 @@
     "console=tty0"
   ];
 
+  systemd.services."serial-getty@ttyS0".enable = true;
+
   services.qemuGuest.enable = true;
 
   fileSystems."/" = {
