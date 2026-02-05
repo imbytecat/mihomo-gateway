@@ -28,8 +28,7 @@ let
       enable: true
       listen: 0.0.0.0:53
       ipv6: false
-      enhanced-mode: fake-ip
-      fake-ip-range: 198.18.0.1/16
+      enhanced-mode: redir-host
       default-nameserver:
         - 223.5.5.5
         - 119.29.29.29
