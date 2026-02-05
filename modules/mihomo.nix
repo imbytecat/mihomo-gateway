@@ -14,7 +14,7 @@ let
   configFile = "${stateDir}/config.yaml";
   envFile = "/etc/mihomo/mihomo.env";
 
-  fallbackConfig = pkgs.writeText "mihomo-fallback.yaml" ''
+  fallbackConfig = pkgs.writeText "fallback.yaml" ''
     tproxy-port: ${toString tproxyPort}
     routing-mark: ${toString routingMark}
     allow-lan: true
@@ -45,6 +45,7 @@ let
     if [ ! -f "${envFile}" ]; then
       echo "No subscription configured: ${envFile} not found"
       echo "Create it with: echo 'SUBSCRIPTION_URL=https://your-url' > ${envFile}"
+      echo "Optional: add DASHBOARD_SECRET=your-secret for API authentication"
       exit 0
     fi
 
@@ -77,6 +78,10 @@ let
       .ipv6 = false |
       .dns.ipv6 = false
     ' "$tmp"
+
+    if [ -n "''${DASHBOARD_SECRET:-}" ]; then
+      ${pkgs.yq-go}/bin/yq -i '.secret = "'"$DASHBOARD_SECRET"'"' "$tmp"
+    fi
 
     echo "Validating configuration..."
     ${pkgs.mihomo}/bin/mihomo -t -f "$tmp" >/dev/null
