@@ -13,9 +13,12 @@
     ./modules/mihomo.nix
     "${modulesPath}/virtualisation/lxc-container.nix"
     "${modulesPath}/profiles/minimal.nix"
+    "${modulesPath}/profiles/perlless.nix"
+    "${modulesPath}/profiles/headless.nix"
   ];
 
   system.stateVersion = "25.11";
+  system.switch.enable = false;
 
   # 镜像优化
   documentation.enable = false;

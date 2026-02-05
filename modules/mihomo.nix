@@ -66,7 +66,7 @@ let
     trap cleanup EXIT
 
     echo "Fetching subscription..."
-    ${pkgs.curl}/bin/curl -fsSL --connect-timeout 30 --max-time 120 \
+    ${pkgs.curlMinimal}/bin/curl -fsSL --connect-timeout 30 --max-time 120 \
       --retry 3 --retry-delay 2 --retry-all-errors \
       -o "$tmp" "$SUBSCRIPTION_URL"
 
