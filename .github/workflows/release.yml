@@ -1,0 +1,115 @@
+name: Build and Release
+
+on:
+  # 手动触发
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Release tag name (e.g., v1.0.0). Leave empty for auto-generated."
+        required: false
+        type: string
+
+  # 定时触发：每周一 UTC 00:00
+  schedule:
+    - cron: "0 0 * * 1"
+
+env:
+  ARTIFACT_NAME: mihomo-gateway-lxc
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Check flake
+        run: nix flake check
+
+      - name: Build LXC tarball
+        run: nix build .#tarball
+
+      - name: Prepare artifact
+        id: artifact
+        run: |
+          # 找到构建产物
+          TARBALL=$(find ./result/tarball -name "*.tar.xz" -type f | head -1)
+          if [ -z "$TARBALL" ]; then
+            echo "Error: No tarball found"
+            exit 1
+          fi
+
+          # 获取文件名和大小
+          FILENAME=$(basename "$TARBALL")
+          SIZE=$(du -h "$TARBALL" | cut -f1)
+
+          echo "tarball=$TARBALL" >> $GITHUB_OUTPUT
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+
+          echo "Found: $FILENAME ($SIZE)"
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          if [ -n "${{ inputs.tag_name }}" ]; then
+            TAG="${{ inputs.tag_name }}"
+          else
+            # 自动生成 tag: v{date}-{short_sha}
+            TAG="v$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Generated tag: $TAG"
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          cat << 'EOF' > release_notes.md
+          ## Mihomo Gateway LXC Tarball
+
+          透明代理网关 LXC 镜像，使用 Mihomo + nftables TPROXY。
+
+          ### 部署说明
+
+          1. 下载 `${{ steps.artifact.outputs.filename }}`
+          2. 导入 Proxmox VE: `pct create <vmid> <tarball> ...`
+          3. 配置订阅 URL:
+             ```bash
+             echo 'SUBSCRIPTION_URL=https://your-url' > /etc/mihomo/mihomo.env
+             chmod 600 /etc/mihomo/mihomo.env
+             ```
+          4. 启动容器
+
+          ### 构建信息
+
+          - **Commit**: ${{ github.sha }}
+          - **Build Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          - **Artifact Size**: ${{ steps.artifact.outputs.size }}
+
+          ### Checksums
+
+          ```
+          $(sha256sum ${{ steps.artifact.outputs.tarball }} | awk '{print $1}')  ${{ steps.artifact.outputs.filename }}
+          ```
+          EOF
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          files: ${{ steps.artifact.outputs.tarball }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
