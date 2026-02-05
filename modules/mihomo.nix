@@ -1,4 +1,3 @@
-# Mihomo 服务 + 订阅管理
 {
   config,
   pkgs,
@@ -14,10 +13,10 @@ let
   configFile = "${stateDir}/config.yaml";
   envFile = "/etc/mihomo/mihomo.env";
 
-  # 共享配置 - Single Source of Truth
   baseConfig = {
     tproxy-port = tproxyPort;
     routing-mark = routingMark;
+    bind-address = "*";
     allow-lan = true;
     find-process-mode = "off";
     ipv6 = false;
@@ -28,9 +27,7 @@ let
     };
   };
 
-  # Fallback 特有配置
   fallbackConfig = baseConfig // {
-    bind-address = "*";
     mode = "direct";
     log-level = "info";
     dns = baseConfig.dns // {
@@ -58,7 +55,6 @@ let
       exit 0
     fi
 
-    # shellcheck disable=SC1090
     source "${envFile}"
 
     if [ -z "''${SUBSCRIPTION_URL:-}" ]; then
@@ -79,7 +75,6 @@ let
       --retry 3 --retry-delay 2 --retry-all-errors \
       -o "$tmp" "$SUBSCRIPTION_URL"
 
-    # Deep merge: 订阅配置在前，共享配置在后覆盖
     ${pkgs.yq-go}/bin/yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
       "$tmp" "${baseConfigYaml}" > "$tmp.merged"
     mv "$tmp.merged" "$tmp"
