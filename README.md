@@ -8,34 +8,6 @@ NixOS LXC 透明代理网关，使用 Mihomo + nftables TPROXY。
 - **LXC 容器**: 无需特权构建，CI 友好
 - **NixOS Flakes**: 可复现构建
 
-## 环境准备
-
-### Windows (WSL2)
-
-```powershell
-wsl --install --no-distribution
-# 下载 https://github.com/nix-community/NixOS-WSL/releases
-wsl --import NixOS $env:LOCALAPPDATA\WSL\NixOS .\nixos-wsl.tar.gz
-wsl -d NixOS
-```
-
-### Linux / macOS
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh
-```
-
-### Arch Linux
-
-```bash
-sudo pacman -S nix
-sudo systemctl enable --now nix-daemon
-sudo usermod -aG nixbld $USER
-# 重新登录后启用 Flakes
-mkdir -p ~/.config/nix
-echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
-```
-
 ## 快速开始
 
 ```bash
