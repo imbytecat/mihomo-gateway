@@ -18,7 +18,6 @@ let
     bind-address = "*";
     external-controller = "0.0.0.0:9090";
     tproxy-port = tproxyPort;
-    routing-mark = routingMark;
     find-process-mode = "off";
     ipv6 = false;
     dns = {

@@ -71,6 +71,7 @@ in
       ];
       routes = [
         {
+          # TPROXY: redirect marked traffic to local for mihomo to handle
           Destination = "0.0.0.0/0";
           Type = "local";
           Table = routingTable;

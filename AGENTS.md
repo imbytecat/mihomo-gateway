@@ -79,9 +79,9 @@ chore: 杂项维护
 ### TPROXY 透明代理
 
 - 需要 `CAP_NET_ADMIN`, `CAP_NET_RAW`, `CAP_NET_BIND_SERVICE`
-- `routing-mark` 必须与 nftables bypass 规则匹配
 - `rp_filter=0` 是必需的
 - 比 TUN 模式性能更好 (内核态直接重定向)
+- 注意：不要设置 `routing-mark` 为 TPROXY 的 mark，否则 mihomo 出站流量会走 local 路由表
 
 ### 调试
 

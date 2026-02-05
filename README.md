@@ -72,7 +72,6 @@ journalctl -u mihomo-subscribe     # 查看订阅拉取日志
 
 ```yaml
 tproxy-port: 7894
-routing-mark: 6666
 bind-address: "*"
 allow-lan: true
 dns:
