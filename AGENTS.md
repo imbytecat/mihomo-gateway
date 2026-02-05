@@ -4,10 +4,10 @@
 
 ## 项目概述
 
-**Mihomo Gateway** - 使用 NixOS Flakes 构建的透明代理网关 LXC 镜像。
+**Mihomo Gateway** - Proxmox VE LXC 透明代理网关。
 
-- 使用 Mihomo + nftables TPROXY
-- 输出 LXC tarball，用于 Proxmox VE 等平台
+- 使用 NixOS + Mihomo + nftables TPROXY
+- 输出 LXC tarball，专为 Proxmox VE 设计
 
 ## 工具链
 

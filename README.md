@@ -1,12 +1,12 @@
 # Mihomo Gateway
 
-NixOS LXC 透明代理网关，使用 Mihomo + nftables TPROXY。
+Proxmox VE LXC 透明代理网关，使用 NixOS + Mihomo + nftables TPROXY。
 
 ## 特性
 
 - **TPROXY 模式**: 内核态重定向，比 TUN 性能更好
-- **LXC 容器**: 无需特权构建，CI 友好
-- **NixOS Flakes**: 可复现构建
+- **Proxmox VE**: 专为 PVE 设计的 LXC 容器镜像
+- **NixOS Flakes**: 声明式配置，可复现构建
 - **生产级加固**: 原子更新、systemd 沙箱、自动重启
 - **IPv6 安全**: 阻断 IPv6 转发，防止流量绕过代理
 
@@ -20,7 +20,7 @@ nix build .#tarball  # 构建 LXC tarball
 
 ## 部署
 
-1. 将 tarball 导入 Proxmox VE 或其他 LXC 平台
+1. 将 tarball 导入 Proxmox VE
 2. 配置订阅 URL（见下方）
 3. 启动容器
 
