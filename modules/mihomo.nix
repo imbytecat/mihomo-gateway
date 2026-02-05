@@ -75,6 +75,8 @@ let
       .allow-lan = true |
       .find-process-mode = "off" |
       .ipv6 = false |
+      .dns.enable = true |
+      .dns.listen = "0.0.0.0:53" |
       .dns.ipv6 = false
     ' "$tmp"
 
