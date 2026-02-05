@@ -45,7 +45,7 @@ let
     if [ ! -f "${envFile}" ]; then
       echo "No subscription configured: ${envFile} not found"
       echo "Create it with: echo 'SUBSCRIPTION_URL=https://your-url' > ${envFile}"
-      echo "Optional: add DASHBOARD_SECRET=your-secret for API authentication"
+      echo "Optional: add SECRET=your-secret for API authentication"
       exit 0
     fi
 
@@ -79,8 +79,8 @@ let
       .dns.ipv6 = false
     ' "$tmp"
 
-    if [ -n "''${DASHBOARD_SECRET:-}" ]; then
-      ${pkgs.yq-go}/bin/yq -i '.secret = "'"$DASHBOARD_SECRET"'"' "$tmp"
+    if [ -n "''${SECRET:-}" ]; then
+      ${pkgs.yq-go}/bin/yq -i '.secret = "'"$SECRET"'"' "$tmp"
     fi
 
     echo "Validating configuration..."

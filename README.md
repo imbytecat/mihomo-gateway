@@ -7,6 +7,8 @@ NixOS LXC 透明代理网关，使用 Mihomo + nftables TPROXY。
 - **TPROXY 模式**: 内核态重定向，比 TUN 性能更好
 - **LXC 容器**: 无需特权构建，CI 友好
 - **NixOS Flakes**: 可复现构建
+- **生产级加固**: 原子更新、systemd 沙箱、自动重启
+- **IPv6 安全**: 阻断 IPv6 转发，防止流量绕过代理
 
 ## 快速开始
 
@@ -27,9 +29,17 @@ nix build .#tarball  # 构建 LXC tarball
 创建环境变量文件：
 
 ```bash
-echo 'SUBSCRIPTION_URL=https://your-subscription-url' > /etc/mihomo/mihomo.env
+cat > /etc/mihomo/mihomo.env << 'EOF'
+SUBSCRIPTION_URL=https://your-subscription-url
+SECRET=your-api-secret
+EOF
 chmod 600 /etc/mihomo/mihomo.env
 ```
+
+| 变量               | 必需 | 说明                                    |
+| ------------------ | ---- | --------------------------------------- |
+| `SUBSCRIPTION_URL` | 是   | 订阅地址                                |
+| `SECRET`           | 否   | API 密钥，用于 Dashboard/external-controller 认证 |
 
 ### 服务说明
 
@@ -55,13 +65,16 @@ journalctl -u mihomo-subscribe     # 查看订阅拉取日志
 
 ### 订阅配置说明
 
-拉取的订阅会自动注入以下 TPROXY 必需配置（覆盖订阅原有值）：
+拉取的订阅会自动注入以下配置（覆盖订阅原有值）：
 
 ```yaml
 tproxy-port: 7894
 routing-mark: 6666
 allow-lan: true
 find-process-mode: "off"
+ipv6: false
+dns.ipv6: false
+secret: <从 SECRET 环境变量读取>
 ```
 
 配置会在应用前用 `mihomo -t` 验证，验证失败则保留原配置。
