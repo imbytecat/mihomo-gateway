@@ -41,7 +41,7 @@
 
   time.timeZone = "Asia/Shanghai";
 
-  environment.systemPackages = with pkgs; [ nano ];
+  environment.systemPackages = with pkgs; [ micro ];
 
   services.openssh = {
     enable = true;
