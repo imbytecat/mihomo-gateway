@@ -30,28 +30,21 @@ jobs:
       - name: Prepare artifact
         id: artifact
         run: |
-          IMAGE=$(find ./result -name "*.qcow2" -type f | head -1)
+          # 找到压缩后的镜像 (.raw.zst)
+          IMAGE=$(find ./result -name "*.raw.zst" -type f | head -1)
           if [ -z "$IMAGE" ]; then
-            IMAGE=$(find ./result -name "*.raw" -type f | head -1)
-          fi
-          if [ -z "$IMAGE" ]; then
-            echo "Error: No image found"
+            echo "Error: No compressed image found"
             exit 1
           fi
 
           FILENAME=$(basename "$IMAGE")
           SIZE=$(du -h "$IMAGE" | cut -f1)
 
-          # Compress with zstd
-          zstd -19 -T0 "$IMAGE" -o "${IMAGE}.zst"
-          COMPRESSED="${IMAGE}.zst"
-          COMPRESSED_SIZE=$(du -h "$COMPRESSED" | cut -f1)
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+          echo "filename=$FILENAME" >> $GITHUB_OUTPUT
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
 
-          echo "image=$COMPRESSED" >> $GITHUB_OUTPUT
-          echo "filename=${FILENAME}.zst" >> $GITHUB_OUTPUT
-          echo "size=$COMPRESSED_SIZE" >> $GITHUB_OUTPUT
-
-          echo "Found: $FILENAME ($SIZE) -> compressed: $COMPRESSED_SIZE"
+          echo "Found: $FILENAME ($SIZE)"
 
       - name: Generate release tag
         id: tag

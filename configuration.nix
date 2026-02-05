@@ -52,6 +52,10 @@
   # Image configuration
   image.repart = {
     name = "mihomo-gateway";
+    compression = {
+      enable = true;
+      algorithm = "zstd";
+    };
     partitions = {
       "10-esp" = {
         contents = {
@@ -60,8 +64,8 @@
         repartConfig = {
           Type = "esp";
           Format = "vfat";
-          SizeMinBytes = "512M";
-          SizeMaxBytes = "512M";
+          SizeMinBytes = "64M";
+          SizeMaxBytes = "64M";
           Label = "ESP";
         };
       };
