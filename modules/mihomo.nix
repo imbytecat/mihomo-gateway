@@ -15,7 +15,7 @@ let
   envFile = "/etc/mihomo/mihomo.env";
 
   # 共享配置 - Single Source of Truth
-  mihomoSettings = {
+  baseConfig = {
     tproxy-port = tproxyPort;
     routing-mark = routingMark;
     allow-lan = true;
@@ -29,11 +29,11 @@ let
   };
 
   # Fallback 特有配置
-  fallbackSettings = mihomoSettings // {
+  fallbackConfig = baseConfig // {
     bind-address = "*";
     mode = "direct";
     log-level = "info";
-    dns = mihomoSettings.dns // {
+    dns = baseConfig.dns // {
       enhanced-mode = "redir-host";
       default-nameserver = [ "223.5.5.5" "119.29.29.29" ];
       nameserver = [
@@ -44,8 +44,8 @@ let
   };
 
   yamlFormat = pkgs.formats.yaml { };
-  settingsYaml = yamlFormat.generate "mihomo-settings.yaml" mihomoSettings;
-  fallbackConfig = yamlFormat.generate "fallback.yaml" fallbackSettings;
+  baseConfigYaml = yamlFormat.generate "base-config.yaml" baseConfig;
+  fallbackConfigYaml = yamlFormat.generate "fallback.yaml" fallbackConfig;
 
   subscribeScript = pkgs.writeShellScript "mihomo-subscribe" ''
     set -euo pipefail
@@ -81,7 +81,7 @@ let
 
     # Deep merge: 订阅配置在前，共享配置在后覆盖
     ${pkgs.yq-go}/bin/yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
-      "$tmp" "${settingsYaml}" > "$tmp.merged"
+      "$tmp" "${baseConfigYaml}" > "$tmp.merged"
     mv "$tmp.merged" "$tmp"
 
     if [ -n "''${SECRET:-}" ]; then
@@ -119,7 +119,7 @@ in
 
   system.activationScripts.mihomo-config = ''
     if [ ! -f "${configFile}" ]; then
-      cp ${fallbackConfig} ${configFile}
+      cp ${fallbackConfigYaml} ${configFile}
       chmod 600 ${configFile}
     fi
   '';
