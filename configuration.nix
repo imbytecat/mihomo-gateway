@@ -21,7 +21,6 @@
 
   # Appliance 模式优化
   nix.enable = false;
-  boot.initrd.includeDefaultModules = false;
 
   boot.loader.grub = {
     enable = true;
