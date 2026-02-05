@@ -13,7 +13,6 @@ let
   stateDir = "/var/lib/mihomo";
   configFile = "${stateDir}/config.yaml";
   envFile = "/etc/mihomo/mihomo.env";
-  tempConfig = "/tmp/mihomo-new.yaml";
 
   fallbackConfig = pkgs.writeText "mihomo-fallback.yaml" ''
     tproxy-port: ${toString tproxyPort}
@@ -41,6 +40,7 @@ let
 
   subscribeScript = pkgs.writeShellScript "mihomo-subscribe" ''
     set -euo pipefail
+    umask 077
 
     if [ ! -f "${envFile}" ]; then
       echo "No subscription configured: ${envFile} not found"
@@ -48,6 +48,7 @@ let
       exit 0
     fi
 
+    # shellcheck disable=SC1090
     source "${envFile}"
 
     if [ -z "''${SUBSCRIPTION_URL:-}" ]; then
@@ -55,40 +56,44 @@ let
       exit 0
     fi
 
-    echo "Fetching subscription..."
+    tmp="$(mktemp -p "${stateDir}" .mihomo-config.XXXXXX.yaml)"
+    new="${configFile}.new"
 
-    if ! ${pkgs.curl}/bin/curl -fsSL --connect-timeout 30 --max-time 120 \
-         -o "${tempConfig}" "$SUBSCRIPTION_URL"; then
-      echo "ERROR: Failed to download subscription"
-      exit 1
-    fi
+    cleanup() {
+      rm -f "$tmp" "$new"
+    }
+    trap cleanup EXIT
+
+    echo "Fetching subscription..."
+    ${pkgs.curl}/bin/curl -fsSL --connect-timeout 30 --max-time 120 \
+      --retry 3 --retry-delay 2 --retry-all-errors \
+      -o "$tmp" "$SUBSCRIPTION_URL"
 
     ${pkgs.yq-go}/bin/yq -i '
       .tproxy-port = ${toString tproxyPort} |
       .routing-mark = ${toString routingMark} |
       .allow-lan = true |
-      .find-process-mode = "off"
-    ' "${tempConfig}"
+      .find-process-mode = "off" |
+      .ipv6 = false |
+      .dns.ipv6 = false
+    ' "$tmp"
 
     echo "Validating configuration..."
-    if ! ${pkgs.mihomo}/bin/mihomo -t -f "${tempConfig}" 2>&1; then
-      echo "ERROR: Configuration validation failed"
-      rm -f "${tempConfig}"
-      exit 1
+    ${pkgs.mihomo}/bin/mihomo -t -f "$tmp" >/dev/null
+
+    if [ -f "${configFile}" ] && ${pkgs.diffutils}/bin/cmp -s "$tmp" "${configFile}"; then
+      echo "No changes; skip restart"
+      exit 0
     fi
 
+    ${pkgs.coreutils}/bin/install -m 600 "$tmp" "$new"
     if [ -f "${configFile}" ]; then
-      cp "${configFile}" "${configFile}.bak"
+      ${pkgs.coreutils}/bin/cp -f "${configFile}" "${configFile}.bak"
     fi
+    ${pkgs.coreutils}/bin/mv -f "$new" "${configFile}"
 
-    mv "${tempConfig}" "${configFile}"
-    chmod 600 "${configFile}"
-
-    echo "Configuration updated"
-
-    if systemctl is-active --quiet mihomo; then
-      systemctl restart mihomo
-    fi
+    echo "Configuration updated; restarting mihomo"
+    systemctl restart mihomo
   '';
 in
 {
@@ -98,8 +103,8 @@ in
   };
 
   systemd.tmpfiles.rules = [
-    "d ${stateDir} 0755 root root -"
-    "d /etc/mihomo 0755 root root -"
+    "d ${stateDir} 0750 root root -"
+    "d /etc/mihomo 0750 root root -"
   ];
 
   system.activationScripts.mihomo-config = ''
@@ -116,8 +121,24 @@ in
     serviceConfig = {
       Type = "oneshot";
       ExecStart = subscribeScript;
-      Restart = "on-failure";
-      RestartSec = "30s";
+
+      UMask = "0077";
+      PrivateTmp = true;
+      NoNewPrivileges = true;
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      PrivateDevices = true;
+      ProtectKernelTunables = true;
+      ProtectKernelModules = true;
+      ProtectControlGroups = true;
+      LockPersonality = true;
+      MemoryDenyWriteExecute = true;
+      RestrictSUIDSGID = true;
+      RestrictRealtime = true;
+      SystemCallArchitectures = "native";
+
+      ReadWritePaths = [ stateDir ];
+      ReadOnlyPaths = [ envFile ];
     };
   };
 
@@ -128,6 +149,7 @@ in
       OnBootSec = "2min";
       OnUnitActiveSec = "6h";
       RandomizedDelaySec = "5min";
+      Persistent = true;
     };
   };
 
@@ -137,7 +159,12 @@ in
       "nftables.service"
     ];
     wants = [ "nftables.service" ];
+    requires = [ "nftables.service" ];
+
     serviceConfig = {
+      Restart = "on-failure";
+      RestartSec = "5s";
+
       CapabilityBoundingSet = [
         "CAP_NET_ADMIN"
         "CAP_NET_RAW"
@@ -148,6 +175,14 @@ in
         "CAP_NET_RAW"
         "CAP_NET_BIND_SERVICE"
       ];
+
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      LockPersonality = true;
+      RestrictSUIDSGID = true;
+
       LimitNOFILE = 1000000;
       StateDirectory = "mihomo";
     };
