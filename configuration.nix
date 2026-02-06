@@ -21,13 +21,14 @@
 
   # Appliance 模式优化
   nix.enable = false;
+  fonts.fontconfig.enable = false;
 
-  boot.loader.grub = {
+  # 使用 systemd-boot 替代 GRUB (更轻量)
+  boot.loader.systemd-boot = {
     enable = true;
-    device = "nodev";
-    efiSupport = true;
-    efiInstallAsRemovable = true;
+    graceful = true;
   };
+  boot.loader.efi.canTouchEfiVariables = false;
   boot.growPartition = true;
 
   boot.kernelParams = [
