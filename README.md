@@ -30,6 +30,11 @@ EOF
 
 之后每 6 小时自动更新。手动触发：`systemctl start mihomo-subscribe`
 
+首次写入 `/etc/mihomo/env` 后，`mihomo-subscribe.service` 会立即拉取订阅并执行 `mihomo -t`
+验证。这个阶段可能持续几十秒到几分钟，因为 Mihomo 会顺带下载/加载 geodata、ASN、rule
+provider 和外部 UI；在验证完成前，`/var/lib/mihomo/` 里会暂时看到 `.mihomo-config.*.yaml`
+这样的临时文件，这是正常现象。
+
 ### 3. 配置客户端
 
 将客户端默认网关指向此 VM 的 IP 地址。

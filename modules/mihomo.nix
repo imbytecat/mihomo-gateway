@@ -125,6 +125,7 @@ in
 
   systemd.tmpfiles.rules = [
     "d /etc/mihomo 0750 root root -"
+    "C ${configFile} - - - - ${fallbackConfigYaml}"
   ];
 
   systemd.services.mihomo-subscribe = {
@@ -160,6 +161,7 @@ in
     description = "Trigger subscription fetch when env file changes";
     wantedBy = [ "multi-user.target" ];
     pathConfig = {
+      PathExists = envFile;
       PathChanged = envFile;
       Unit = "mihomo-subscribe.service";
     };
@@ -172,12 +174,6 @@ in
     ];
     wants = [ "nftables.service" ];
     requires = [ "nftables.service" ];
-
-    preStart = ''
-      if [ ! -f "${configFile}" ]; then
-        cp ${fallbackConfigYaml} ${configFile}
-      fi
-    '';
 
     serviceConfig = {
       Restart = "on-failure";
