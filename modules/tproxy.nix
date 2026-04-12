@@ -33,40 +33,31 @@ in
 
   networking.nftables = {
     enable = true;
-    tables = {
-      mihomo = {
-        family = "ip";
-        content = ''
-          chain prerouting {
-            type filter hook prerouting priority mangle; policy accept;
+    ruleset = ''
+      table ip mihomo {
+        chain prerouting {
+          type filter hook prerouting priority mangle; policy accept;
 
-            meta mark ${toString routingMark} return
-            ip daddr { 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 } return
-            fib daddr type { local, broadcast, multicast } return
-            meta l4proto { tcp, udp } tproxy to :${toString tproxyPort} meta mark set ${toString routingMark}
-          }
-        '';
-      };
+          meta mark ${toString routingMark} return
+          ip daddr { 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 } return
+          fib daddr type { local, broadcast, multicast } return
+          meta l4proto { tcp, udp } tproxy to :${toString tproxyPort} meta mark set ${toString routingMark}
+        }
+      }
 
-      mihomo-dns = {
-        family = "inet";
-        content = ''
-          chain prerouting {
-            type nat hook prerouting priority dstnat; policy accept;
-            meta l4proto { tcp, udp } th dport 53 redirect to :${toString dnsPort}
-          }
-        '';
-      };
+      table inet mihomo-dns {
+        chain prerouting {
+          type nat hook prerouting priority dstnat; policy accept;
+          meta l4proto { tcp, udp } th dport 53 redirect to :${toString dnsPort}
+        }
+      }
 
-      "mihomo-v6-drop" = {
-        family = "ip6";
-        content = ''
-          chain forward {
-            type filter hook forward priority filter; policy drop;
-          }
-        '';
-      };
-    };
+      table ip6 mihomo {
+        chain forward {
+          type filter hook forward priority filter; policy drop;
+        }
+      }
+    '';
   };
 
   networking.iproute2.enable = true;
