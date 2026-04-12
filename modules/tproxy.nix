@@ -1,5 +1,5 @@
 # TPROXY 网络层 (sysctl + routing + nftables)
-{ config, lib, ... }:
+{ ... }:
 
 let
   constants = import ./constants.nix;

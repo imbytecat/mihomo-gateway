@@ -1,6 +1,5 @@
 # Mihomo 网关 - NixOS VM 配置
 {
-  config,
   pkgs,
   lib,
   modulesPath,
@@ -47,7 +46,10 @@
   fileSystems."/boot" = {
     device = "/dev/disk/by-label/ESP";
     fsType = "vfat";
-    options = [ "fmask=0077" "dmask=0077" ];
+    options = [
+      "fmask=0077"
+      "dmask=0077"
+    ];
   };
 
   networking = {
