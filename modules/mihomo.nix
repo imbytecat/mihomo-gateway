@@ -6,7 +6,7 @@
 
 let
   constants = import ./constants.nix;
-  inherit (constants) tproxyPort dnsPort routingMark;
+  inherit (constants) tproxyPort dnsPort;
 
   stateDir = "/var/lib/mihomo";
   configFile = "${stateDir}/config.yaml";
