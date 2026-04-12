@@ -28,8 +28,11 @@ mihomo -f <file>       # 指定配置文件
 
 ```yaml
 tproxy-port: 7894      # TPROXY 监听端口
-routing-mark: 6666     # 绕过标记 (须与 nftables 匹配)
+mixed-port: 7890       # HTTP+SOCKS5 混合代理端口
 ```
+
+**注意**: 本项目不设置 `routing-mark`。因为 nftables 只有 PREROUTING 链（无 OUTPUT 链），
+Mihomo 出站流量不会被拦截。若设置 routing-mark，ip rule 会将出站流量路由回本机，导致死循环。
 
 ## 常用模式
 
@@ -43,7 +46,7 @@ mihomo -t -f /tmp/config.yaml && mv /tmp/config.yaml /etc/mihomo/config.yaml
 ### 强制注入 TPROXY 字段
 
 ```bash
-yq -i '.tproxy-port = 7894 | .routing-mark = 6666' config.yaml
+yq -i '.tproxy-port = 7894 | .mixed-port = 7890' config.yaml
 ```
 
 ## 查阅方法论
