@@ -41,7 +41,8 @@
 
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
-          nil
+          just
+          nixd
           nixfmt
         ];
       };
