@@ -53,7 +53,9 @@ just update   # 更新 flake inputs
 |------|----------|------|
 | `mihomo-subscribe.path` | 监听 `/etc/mihomo/env` 变化 | 文件创建或修改时触发 subscribe |
 | `mihomo-subscribe.timer` | `OnUnitActiveSec=6h` | 周期性更新 |
-| `mihomo-subscribe.service` | 被 path/timer 触发 | 下载 → 黑名单净化 → baseConfig 覆盖 → SECRET 注入 → `mihomo -t` 验证 → 替换配置 → 重启 mihomo |
+| `mihomo-subscribe.service` | 被 path/timer 触发 | 下载 → 黑名单净化 → baseConfig 覆盖 → SECRET 注入 → `mihomo -t` 验证 → 备份旧配置 → 替换 → 重启 mihomo |
+
+Fallback 配置在 `mihomo` 服务的 `preStart` 中按需生成（config.yaml 不存在时复制 fallbackConfig），不使用 activationScripts。
 
 关键规则：
 - 环境变量通过 systemd `EnvironmentFile=` 注入，**不要用 `source`**。
@@ -64,10 +66,12 @@ just update   # 更新 flake inputs
 ## TPROXY 要点
 
 - **不要设置 `routing-mark`** 为 TPROXY 的 mark（6666），否则 mihomo 出站走 local 路由表导致黑洞。
-- `rp_filter=0` 和 `src_valid_mark=1` 是 TPROXY 必需的 sysctl。
+- `rp_filter=0` 和 `src_valid_mark=1` 是 TPROXY 必需的 sysctl，必须同时设置 `all` 和 `default`。
+- BBR + fq 是当前场景最优的拥塞控制组合，不要换成 `fq_codel`。BBRv3 未进主线内核，不要引入。
 - 只需 `CAP_NET_ADMIN`（所有端口 >1024，无需 `CAP_NET_BIND_SERVICE`）。
 - nftables `inet` 族的 DNS 劫持表天然覆盖 IPv4+IPv6。
 - IPv6 转发被 sysctl 禁用 + `ip6 mihomo` 表 forward drop 双重阻断。
+- `tproxy.nix` 中的 sysctl 是最小完整集（TPROXY 正确性 + 转发 + BBR），不要再添加其他调优项。
 
 ## Commit 规范
 

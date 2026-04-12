@@ -107,10 +107,10 @@ let
       exit 0
     fi
 
-    cp -f "$tmp" "${configFile}"
     if [ -f "${configFile}" ]; then
       cp -f "${configFile}" "${configFile}.bak"
     fi
+    mv -f "$tmp" "${configFile}"
 
     echo "Configuration updated; restarting mihomo"
     systemctl restart mihomo
@@ -123,16 +123,8 @@ in
   };
 
   systemd.tmpfiles.rules = [
-    "d ${stateDir} 0750 root root -"
     "d /etc/mihomo 0750 root root -"
   ];
-
-  system.activationScripts.mihomo-config = ''
-    if [ ! -f "${configFile}" ]; then
-      cp ${fallbackConfigYaml} ${configFile}
-      chmod 600 ${configFile}
-    fi
-  '';
 
   systemd.services.mihomo-subscribe = {
     description = "Fetch and validate Mihomo subscription";
@@ -174,6 +166,12 @@ in
     ];
     wants = [ "nftables.service" ];
     requires = [ "nftables.service" ];
+
+    preStart = ''
+      if [ ! -f "${configFile}" ]; then
+        cp ${fallbackConfigYaml} ${configFile}
+      fi
+    '';
 
     serviceConfig = {
       Restart = "on-failure";

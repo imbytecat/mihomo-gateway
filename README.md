@@ -7,17 +7,6 @@ NixOS VM 透明代理网关，使用 Mihomo + nftables TPROXY。
 - **TPROXY 模式**: 内核态重定向，比 TUN 性能更好
 - **VM 镜像**: qcow2 格式，支持 QEMU/KVM、Proxmox VE、Libvirt 等
 - **NixOS Flakes**: 声明式配置，可复现构建
-- **生产级加固**: 原子更新、systemd 沙箱、自动重启
-- **IPv6 安全**: 阻断 IPv6 转发，防止流量绕过代理
-
-## 快速开始
-
-```bash
-nix develop      # 进入开发环境
-just build       # 构建 VM 镜像 (qcow2)
-```
-
-输出位于 `./result/nixos.qcow2`
 
 ## 部署
 
@@ -30,7 +19,7 @@ just build       # 构建 VM 镜像 (qcow2)
 
 ### 2. 配置订阅
 
-SSH 登录后创建环境变量文件：
+SSH 登录后创建环境变量文件，订阅会自动拉取：
 
 ```bash
 cat > /etc/mihomo/env << 'EOF'
@@ -39,88 +28,21 @@ SECRET=your-api-secret
 EOF
 ```
 
-| 变量               | 必需 | 说明                                    |
-| ------------------ | ---- | --------------------------------------- |
-| `CONFIG_URL`       | 是   | 远程配置文件地址                        |
-| `SECRET`           | 是   | external-controller API 密钥，Dashboard 通过此密钥认证 |
+之后每 6 小时自动更新。手动触发：`systemctl start mihomo-subscribe`
 
-### 服务说明
+### 3. 配置客户端
 
-| 服务                       | 类型    | 作用                             |
-| -------------------------- | ------- | -------------------------------- |
-| `mihomo.service`           | 常驻    | 运行 Mihomo 代理                 |
-| `mihomo-subscribe.service` | oneshot | 拉取订阅、验证、替换配置         |
-| `mihomo-subscribe.timer`   | timer   | 每 6 小时定时触发订阅拉取        |
-| `mihomo-subscribe.path`    | path    | 监听环境变量文件变化，自动触发订阅拉取 |
+将客户端默认网关指向此 VM 的 IP 地址。
 
-**启动流程**：
-1. 系统启动 → mihomo 使用 fallback 直连配置启动
-2. 创建/修改 `/etc/mihomo/env` → path unit 自动触发订阅拉取
-3. 订阅验证通过 → 替换配置并重启 mihomo
-4. 之后每 6 小时自动更新
-
-手动操作：
-
-```bash
-systemctl start mihomo-subscribe   # 立即拉取订阅
-systemctl status mihomo            # 查看代理状态
-journalctl -u mihomo-subscribe     # 查看订阅拉取日志
-```
-
-### 订阅配置说明
-
-拉取的订阅会自动注入以下配置（覆盖订阅原有值）：
-
-```yaml
-tproxy-port: 7894
-bind-address: "*"
-allow-lan: true
-dns:
-  enable: true
-  listen: 0.0.0.0:1053
-```
-
-配置会在应用前用 `mihomo -t` 验证，验证失败则保留原配置。
-
-## 网络拓扑
-
-本项目是**单臂透明代理节点**，而非自带 DHCP/NAT 的一体化路由器：
-
-- 拦截经过本机的 **transit 流量**，不代理本机发起的流量
-- 不内建 LAN/WAN 接口角色和 DHCP server
-- 需要外部网络将客户端默认网关指向此 VM
-
-> **Fail-open 说明**：系统启动后使用 fallback 直连配置（无 Dashboard），创建环境变量文件后自动拉取订阅并切换到完整代理模式。
+> 这是一个**单臂透明代理节点**，不是路由器——不内建 DHCP/NAT，只拦截转发流量。
 
 ## 开发
 
-进入开发环境（提供 `just`、`nixd`、`nixfmt`）：
+所有 flake 输出仅 `x86_64-linux`。
 
 ```bash
-nix develop
-```
-
-然后使用 `just` 执行常用任务：
-
-```bash
-just          # 列出所有可用命令
-just build    # 构建 qcow2 虚拟机镜像
-just check    # 检查 flake
-just fmt      # 格式化 nix 文件
-just show     # 查看 flake 输出
-just update   # 更新 flake inputs
-```
-
-## 目录结构
-
-```
-mihomo-gateway/
-├── flake.nix              # Flake 入口
-├── flake.lock             # 版本锁定
-├── justfile               # Just 任务定义
-├── configuration.nix      # NixOS 配置
-└── modules/
-    ├── constants.nix      # 共享常量
-    ├── tproxy.nix         # TPROXY 网络层
-    └── mihomo.nix         # Mihomo 服务
+nix develop       # 开发环境 (just, nixd, nixfmt)
+just build        # 构建 VM 镜像 (qcow2)
+just check        # 检查 flake
+just fmt           # 格式化
 ```
