@@ -14,21 +14,12 @@ let
 
   baseConfig = {
     allow-lan = true;
-    bind-address = "*";
     external-controller = "0.0.0.0:9090";
+    tproxy-port = tproxyPort;
     mixed-port = mixedPort;
     find-process-mode = "off";
     ipv6 = false;
     profile.store-fake-ip = true;
-    listeners = [
-      {
-        name = "tproxy-in";
-        type = "tproxy";
-        listen = "127.0.0.1";
-        port = tproxyPort;
-        udp = true;
-      }
-    ];
     dns = {
       enable = true;
       listen = "0.0.0.0:${toString dnsPort}";
@@ -98,9 +89,7 @@ let
       del(.secret)
     ' "$tmp"
 
-    yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
-      "$tmp" "${baseConfigYaml}" > "$tmp.merged"
-    mv "$tmp.merged" "$tmp"
+    yq -i '. * load("${baseConfigYaml}")' "$tmp"
 
     SECRET="$SECRET" yq -i '.secret = strenv(SECRET)' "$tmp"
 

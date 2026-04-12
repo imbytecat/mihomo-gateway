@@ -62,26 +62,23 @@ in
 
   networking.iproute2.enable = true;
 
-  systemd.network = {
-    enable = true;
-    networks."99-tproxy" = {
-      matchConfig.Name = "lo";
-      networkConfig.IPv4ReversePathFilter = "no";
-      routingPolicyRules = [
-        {
-          FirewallMark = routingMark;
-          Table = routingTable;
-          Priority = 100;
-        }
-      ];
-      routes = [
-        {
-          # 将标记流量路由到本机，由 Mihomo 接管
-          Destination = "0.0.0.0/0";
-          Type = "local";
-          Table = routingTable;
-        }
-      ];
-    };
+  systemd.network.networks."99-tproxy" = {
+    matchConfig.Name = "lo";
+    networkConfig.IPv4ReversePathFilter = "no";
+    routingPolicyRules = [
+      {
+        FirewallMark = routingMark;
+        Table = routingTable;
+        Priority = 100;
+      }
+    ];
+    routes = [
+      {
+        # 将标记流量路由到本机，由 Mihomo 接管
+        Destination = "0.0.0.0/0";
+        Type = "local";
+        Table = routingTable;
+      }
+    ];
   };
 }

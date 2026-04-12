@@ -11,13 +11,7 @@
       lib = nixpkgs.lib;
       nixosConfig = self.nixosConfigurations.default;
 
-      version =
-        if self ? shortRev then
-          self.shortRev
-        else if self ? dirtyShortRev then
-          self.dirtyShortRev
-        else
-          "unknown";
+      version = self.shortRev or self.dirtyShortRev or "unknown";
     in
     {
       nixosConfigurations.default = nixpkgs.lib.nixosSystem {
