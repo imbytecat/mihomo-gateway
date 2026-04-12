@@ -8,9 +8,9 @@ default:
 build:
     nix build '.#packages.{{system}}.image'
 
-# 检查 flake
+# 检查 flake (仅 Linux amd64)
 check:
-    nix flake check --no-build
+    nix flake check
 
 # 格式化 nix 文件
 fmt:
