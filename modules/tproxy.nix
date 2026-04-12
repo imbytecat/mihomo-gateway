@@ -33,31 +33,40 @@ in
 
   networking.nftables = {
     enable = true;
-    ruleset = ''
-      table ip mihomo {
-        chain prerouting {
-          type filter hook prerouting priority mangle; policy accept;
+    tables = {
+      mihomo = {
+        family = "ip";
+        content = ''
+          chain prerouting {
+            type filter hook prerouting priority mangle; policy accept;
 
-          meta mark ${toString routingMark} return
-          ip daddr { 0.0.0.0/8, 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 } return
-          fib daddr type { local, broadcast, multicast } return
-          meta l4proto { tcp, udp } tproxy ip to 127.0.0.1:${toString tproxyPort} meta mark set ${toString routingMark} accept
-        }
-      }
+            meta mark ${toString routingMark} return
+            ip daddr { 0.0.0.0/8, 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 } return
+            fib daddr type { local, broadcast, multicast } return
+            meta l4proto { tcp, udp } tproxy ip to 127.0.0.1:${toString tproxyPort} meta mark set ${toString routingMark} accept
+          }
+        '';
+      };
 
-      table inet mihomo-dns {
-        chain prerouting {
-          type nat hook prerouting priority dstnat; policy accept;
-          meta l4proto { tcp, udp } th dport 53 redirect to :${toString dnsPort}
-        }
-      }
+      mihomo-dns = {
+        family = "inet";
+        content = ''
+          chain prerouting {
+            type nat hook prerouting priority dstnat; policy accept;
+            meta l4proto { tcp, udp } th dport 53 redirect to :${toString dnsPort}
+          }
+        '';
+      };
 
-      table ip6 mihomo {
-        chain forward {
-          type filter hook forward priority filter; policy drop;
-        }
-      }
-    '';
+      "mihomo-v6-drop" = {
+        family = "ip6";
+        content = ''
+          chain forward {
+            type filter hook forward priority filter; policy drop;
+          }
+        '';
+      };
+    };
   };
 
   networking.iproute2.enable = true;
