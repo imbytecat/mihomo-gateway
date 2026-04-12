@@ -18,7 +18,7 @@
   system.stateVersion = "25.11";
   i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" ];
 
-  # Appliance 模式优化
+  # 精简系统：禁用不需要的功能
   nix.enable = false;
   fonts.fontconfig.enable = false;
 
@@ -66,7 +66,7 @@
     linkConfig.RequiredForOnline = "routable";
   };
 
-  # DNS: Stubless Resolved - 从 DHCP 获取 DNS，禁用 stub listener 避免与 Mihomo 冲突
+  # DNS：从 DHCP 获取上游 DNS，禁用 stub 监听避免与 Mihomo 端口冲突
   services.resolved = {
     enable = true;
     settings.Resolve = {

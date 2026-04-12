@@ -75,7 +75,7 @@ in
       ];
       routes = [
         {
-          # TPROXY: redirect marked traffic to local for mihomo to handle
+          # 将标记流量路由到本机，由 Mihomo 接管
           Destination = "0.0.0.0/0";
           Type = "local";
           Table = routingTable;
