@@ -13,7 +13,8 @@ NixOS VM 透明代理网关，使用 Mihomo + nftables TPROXY。
 ## 快速开始
 
 ```bash
-nix build .#image  # 构建 VM 镜像 (qcow2)
+nix develop      # 进入开发环境
+just build       # 构建 VM 镜像 (qcow2)
 ```
 
 输出位于 `./result/nixos.qcow2`
@@ -91,14 +92,23 @@ dns:
 
 > **Fail-open 说明**：系统启动后前 2 分钟使用 fallback 直连配置（无 Dashboard），待订阅拉取成功后切换到完整代理模式。
 
-## 命令
+## 开发
+
+进入开发环境（提供 `just`、`nixd`、`nixfmt`）：
 
 ```bash
-nix build .#image    # 构建 VM 镜像
-nix build .#default  # 构建系统配置
-nix develop          # 开发 shell
-nix fmt              # 格式化代码
-nix flake check      # 检查 flake
+nix develop
+```
+
+然后使用 `just` 执行常用任务：
+
+```bash
+just          # 列出所有可用命令
+just build    # 构建 qcow2 虚拟机镜像
+just check    # 检查 flake
+just fmt      # 格式化 nix 文件
+just show     # 查看 flake 输出
+just update   # 更新 flake inputs
 ```
 
 ## 目录结构
@@ -107,6 +117,7 @@ nix flake check      # 检查 flake
 mihomo-gateway/
 ├── flake.nix              # Flake 入口
 ├── flake.lock             # 版本锁定
+├── justfile               # Just 任务定义
 ├── configuration.nix      # NixOS 配置
 └── modules/
     ├── constants.nix      # 共享常量
