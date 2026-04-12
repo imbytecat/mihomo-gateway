@@ -33,11 +33,12 @@ let
     dns = baseConfig.dns // {
       enhanced-mode = "redir-host";
       default-nameserver = [
+        "114.114.114.114"
         "223.5.5.5"
         "119.29.29.29"
       ];
       nameserver = [
-        "https://dns.alidns.com/dns-query#h3=true"
+        "https://dns.alidns.com/dns-query"
         "https://doh.pub/dns-query"
       ];
     };
