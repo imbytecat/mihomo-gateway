@@ -16,10 +16,19 @@ let
     allow-lan = true;
     bind-address = "*";
     external-controller = "0.0.0.0:9090";
-    tproxy-port = tproxyPort;
     mixed-port = mixedPort;
     find-process-mode = "off";
     ipv6 = false;
+    profile.store-fake-ip = true;
+    listeners = [
+      {
+        name = "tproxy-in";
+        type = "tproxy";
+        listen = "127.0.0.1";
+        port = tproxyPort;
+        udp = true;
+      }
+    ];
     dns = {
       enable = true;
       listen = "0.0.0.0:${toString dnsPort}";
