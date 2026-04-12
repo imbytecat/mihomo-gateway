@@ -130,11 +130,13 @@ in
 
   systemd.services.mihomo-subscribe = {
     description = "Fetch and validate Mihomo subscription";
+    wantedBy = [ "multi-user.target" ];
     after = [
       "network-online.target"
       "mihomo.service"
     ];
     wants = [ "network-online.target" ];
+    unitConfig.ConditionPathExists = envFile;
     path = with pkgs; [
       curlMinimal
       yq-go
@@ -161,7 +163,6 @@ in
     description = "Trigger subscription fetch when env file changes";
     wantedBy = [ "multi-user.target" ];
     pathConfig = {
-      PathExists = envFile;
       PathChanged = envFile;
       Unit = "mihomo-subscribe.service";
     };
