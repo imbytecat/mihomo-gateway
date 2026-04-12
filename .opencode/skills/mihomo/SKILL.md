@@ -49,6 +49,74 @@ mihomo -t -f /tmp/config.yaml && mv /tmp/config.yaml /etc/mihomo/config.yaml
 yq -i '.tproxy-port = 7894 | .mixed-port = 7890' config.yaml
 ```
 
+## TPROXY 排查手册
+
+### rp_filter 陷阱（已踩坑并修复）
+
+**症状**: DNS 返回 fakeip 正常，但 TCP 连接超时（ERR_CONN_TIMED_OUT）。nftables TPROXY 规则有计数但 mihomo 无流量。
+
+**根因**: Linux `rp_filter` 有效值 = `max(conf.all, conf.INTERFACE)`。NixOS 内核默认给每个接口 `rp_filter=2`，仅设 `conf.all=0` + `conf.default=0` 无效（`default` 只影响新建接口）。
+
+**为什么 rp_filter 会丢包**: TPROXY 的路由表有 `0.0.0.0/0 local`，反向路径查找返回 `RTN_LOCAL`，但包从 ens18（非 loopback）进入，内核判定 RTN_LOCAL 不应从非 loopback 到达 → 丢弃。丢包位置：`ip_rcv_finish_core`。
+
+**修复**: 通过 systemd-networkd 逐接口禁用：
+
+```nix
+# configuration.nix — 物理网卡
+systemd.network.networks."50-ens".networkConfig.IPv4ReversePathFilter = "no";
+
+# tproxy.nix — loopback
+systemd.network.networks."99-tproxy" = {
+  matchConfig.Name = "lo";
+  networkConfig.IPv4ReversePathFilter = "no";
+  # ... routes & rules
+};
+```
+
+**不需要 `src_valid_mark`**: `rp_filter=0` 时反向路径检查完全跳过，不需要 `src_valid_mark=1`。
+
+### 排查流程（从上到下）
+
+1. **确认基础设施**:
+   - `ip rule show` — 有 `fwmark 0x1a0a lookup 100`
+   - `ip route show table 100` — 有 `local default dev lo`
+   - `nft list ruleset` — TPROXY 规则存在
+   - `ss -tlnp | grep 7894` — mihomo 在监听
+   - `lsmod | grep tproxy` — `nft_tproxy`, `nf_tproxy_ipv4` 已加载
+
+2. **确认流量到达 nftables**: 给 TPROXY 规则加 `counter`，看是否有包匹配
+
+3. **确认 mihomo 能力**: `getpcaps $(pidof mihomo)` 需含 `cap_net_admin`
+
+4. **定位丢包点（关键）**:
+   ```bash
+   perf trace -e skb:kfree_skb --filter 'reason != 0' -a -- sleep 5
+   # 或
+   cat /sys/kernel/debug/tracing/events/skb/kfree_skb/format  # 查看可用字段
+   echo 1 > /sys/kernel/debug/tracing/events/skb/kfree_skb/enable
+   cat /sys/kernel/debug/tracing/trace_pipe
+   ```
+   如果大量丢包在 `ip_rcv_finish_core` → rp_filter 问题。
+
+5. **验证 rp_filter**:
+   ```bash
+   sysctl net.ipv4.conf.{all,default,ens18,lo}.rp_filter
+   # 有效值 = max(all, 接口)，任何接口 >0 都会导致 TPROXY 丢包
+   ```
+
+### 关键设计决策
+
+| 决策 | 原因 |
+|------|------|
+| 不设 `routing-mark` | nftables 只有 PREROUTING 链，无 OUTPUT 链，mihomo 出站不会被拦截。设了反而会死循环 |
+| 不设 `src_valid_mark` | rp_filter=0 时不需要 |
+| 用 networkd 而非 sysctl 禁 rp_filter | sysctl `default` 只影响新建接口，对已存在接口无效 |
+| DNS 劫持用 `dstnat` + `redirect` | 比 TPROXY 简单，DNS 只需改目标端口 |
+
+### IP_TRANSPARENT 确认
+
+mihomo 源码 `listener/tproxy/setsockopt_linux.go` 对 TCP 和 UDP 都设置了 `IP_TRANSPARENT`。`tproxy-port` 配置项和 `listeners` 配置项走同一代码路径。
+
 ## 查阅方法论
 
 **关键**: 文档和源码需要交叉验证，两者都不完整。
