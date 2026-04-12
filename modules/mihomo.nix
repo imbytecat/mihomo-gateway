@@ -24,6 +24,15 @@ let
       enable = true;
       listen = "0.0.0.0:${toString dnsPort}";
       ipv6 = false;
+      default-nameserver = [
+        "114.114.114.114"
+        "223.5.5.5"
+        "119.29.29.29"
+      ];
+      nameserver = [
+        "https://dns.alidns.com/dns-query"
+        "https://doh.pub/dns-query"
+      ];
     };
   };
 
@@ -86,7 +95,16 @@ let
       del(.allow-lan) |
       del(.bind-address) |
       del(.external-controller) |
-      del(.secret)
+      del(.secret) |
+      del(.dns.listen) |
+      del(.dns.ipv6) |
+      del(.dns.default-nameserver) |
+      del(.dns.nameserver) |
+      del(.dns.proxy-server-nameserver) |
+      del(.dns.direct-nameserver) |
+      del(.dns.fallback) |
+      del(.dns.fallback-filter) |
+      del(.dns.nameserver-policy)
     ' "$tmp"
 
     yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \

@@ -41,9 +41,9 @@ in
             type filter hook prerouting priority mangle; policy accept;
 
             meta mark ${toString routingMark} return
-            ip daddr { 0.0.0.0/8, 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 } return
+            ip daddr { 127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 } return
             fib daddr type { local, broadcast, multicast } return
-            meta l4proto { tcp, udp } tproxy ip to 127.0.0.1:${toString tproxyPort} meta mark set ${toString routingMark} accept
+            meta l4proto { tcp, udp } tproxy to :${toString tproxyPort} meta mark set ${toString routingMark}
           }
         '';
       };
@@ -73,8 +73,8 @@ in
 
   systemd.network = {
     enable = true;
-    networks."90-tproxy-rule" = {
-      matchConfig.Name = "ens*";
+    networks."99-tproxy" = {
+      matchConfig.Name = "lo";
       routingPolicyRules = [
         {
           FirewallMark = routingMark;
@@ -82,10 +82,6 @@ in
           Priority = 100;
         }
       ];
-    };
-
-    networks."99-tproxy" = {
-      matchConfig.Name = "lo";
       routes = [
         {
           # 将标记流量路由到本机，由 Mihomo 接管
