@@ -61,7 +61,12 @@
 
   systemd.network.networks."50-ens" = {
     matchConfig.Name = "ens*";
-    networkConfig.DHCP = "yes";
+    networkConfig = {
+      DHCP = "yes";
+      # TPROXY 必需：rp_filter 有效值 = max(conf.all, conf.INTERFACE)，
+      # NixOS 内核给已存在接口默认 rp_filter=2，sysctl 的 all/default 无法覆盖。
+      IPv4ReversePathFilter = "no";
+    };
     dhcpV4Config.UseDNS = true;
     linkConfig.RequiredForOnline = "routable";
   };

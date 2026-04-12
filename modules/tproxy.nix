@@ -14,11 +14,11 @@ in
   boot.kernel.sysctl = {
     "net.ipv4.ip_forward" = 1;
 
-    # TPROXY 必需
+    # TPROXY 必需：rp_filter 有效值 = max(conf.all, conf.INTERFACE)，
+    # NixOS 内核默认 conf.INTERFACE.rp_filter = 2，仅设 all/default = 0 不够。
+    # 必须通过 networkd 在每个接口上显式禁用。
     "net.ipv4.conf.all.rp_filter" = 0;
     "net.ipv4.conf.default.rp_filter" = 0;
-    "net.ipv4.conf.all.src_valid_mark" = 1;
-    "net.ipv4.conf.default.src_valid_mark" = 1;
     "net.ipv4.conf.all.send_redirects" = 0;
     "net.ipv4.conf.default.send_redirects" = 0;
 
@@ -66,6 +66,7 @@ in
     enable = true;
     networks."99-tproxy" = {
       matchConfig.Name = "lo";
+      networkConfig.IPv4ReversePathFilter = "no";
       routingPolicyRules = [
         {
           FirewallMark = routingMark;
