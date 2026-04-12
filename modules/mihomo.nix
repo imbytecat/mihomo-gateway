@@ -6,7 +6,7 @@
 
 let
   constants = import ./constants.nix;
-  inherit (constants) tproxyPort dnsPort;
+  inherit (constants) tproxyPort mixedPort dnsPort;
 
   stateDir = "/var/lib/mihomo";
   configFile = "${stateDir}/config.yaml";
@@ -17,6 +17,7 @@ let
     bind-address = "*";
     external-controller = "0.0.0.0:9090";
     tproxy-port = tproxyPort;
+    mixed-port = mixedPort;
     find-process-mode = "off";
     ipv6 = false;
     dns = {
