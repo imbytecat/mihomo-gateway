@@ -78,7 +78,12 @@
   environment.etc."resolv.conf".source = lib.mkForce "/run/systemd/resolve/resolv.conf";
 
   time.timeZone = "Asia/Shanghai";
-  environment.systemPackages = with pkgs; [ micro ];
+  environment.systemPackages = with pkgs; [
+    micro
+    curlMinimal
+    yq-go
+    mihomo
+  ];
 
   services.openssh = {
     enable = true;

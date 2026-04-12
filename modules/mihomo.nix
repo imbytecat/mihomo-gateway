@@ -69,12 +69,12 @@ let
     trap cleanup EXIT
 
     echo "Fetching subscription..."
-    ${pkgs.curlMinimal}/bin/curl -fsSL --connect-timeout 30 --max-time 120 \
+    curl -fsSL --connect-timeout 30 --max-time 120 \
       --retry 3 --retry-delay 2 --retry-all-errors \
       -o "$tmp" "$CONFIG_URL"
 
     echo "Sanitizing subscription..."
-    ${pkgs.yq-go}/bin/yq -i '
+    yq -i '
       del(.routing-mark) |
       del(.tun) |
       del(.listeners) |
@@ -89,21 +89,21 @@ let
       del(.secret)
     ' "$tmp"
 
-    ${pkgs.yq-go}/bin/yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
+    yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
       "$tmp" "${baseConfigYaml}" > "$tmp.merged"
     mv "$tmp.merged" "$tmp"
 
-    SECRET="$SECRET" ${pkgs.yq-go}/bin/yq -i '.secret = strenv(SECRET)' "$tmp"
+    SECRET="$SECRET" yq -i '.secret = strenv(SECRET)' "$tmp"
 
     echo "Validating configuration..."
-    if ! output=$(${pkgs.mihomo}/bin/mihomo -t -f "$tmp" -d "${stateDir}" 2>&1); then
+    if ! output=$(mihomo -t -f "$tmp" -d "${stateDir}" 2>&1); then
       echo "Validation failed:"
       echo "$output"
       exit 1
     fi
     echo "$output"
 
-    if [ -f "${configFile}" ] && ${pkgs.diffutils}/bin/cmp -s "$tmp" "${configFile}"; then
+    if [ -f "${configFile}" ] && [ "$(sha256sum < "$tmp")" = "$(sha256sum < "${configFile}")" ]; then
       echo "No changes; skip restart"
       exit 0
     fi
@@ -134,6 +134,11 @@ in
       "mihomo.service"
     ];
     wants = [ "network-online.target" ];
+    path = with pkgs; [
+      curlMinimal
+      yq-go
+      mihomo
+    ];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = subscribeScript;
