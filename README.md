@@ -33,7 +33,7 @@ SSH 登录后创建环境变量文件：
 
 ```bash
 cat > /etc/mihomo/mihomo.env << 'EOF'
-SUBSCRIPTION_URL=https://your-subscription-url
+CONFIG_URL=https://your-config-url
 SECRET=your-api-secret
 EOF
 chmod 600 /etc/mihomo/mihomo.env
@@ -41,8 +41,8 @@ chmod 600 /etc/mihomo/mihomo.env
 
 | 变量               | 必需 | 说明                                    |
 | ------------------ | ---- | --------------------------------------- |
-| `SUBSCRIPTION_URL` | 是   | 订阅地址                                |
-| `SECRET`           | 否   | API 密钥，用于 Dashboard 认证           |
+| `CONFIG_URL`       | 是   | 远程配置文件地址                        |
+| `SECRET`           | 是   | external-controller API 密钥，Dashboard 通过此密钥认证 |
 
 ### 服务说明
 
@@ -80,6 +80,16 @@ dns:
 ```
 
 配置会在应用前用 `mihomo -t` 验证，验证失败则保留原配置。
+
+## 网络拓扑
+
+本项目是**单臂透明代理节点**，而非自带 DHCP/NAT 的一体化路由器：
+
+- 拦截经过本机的 **transit 流量**，不代理本机发起的流量
+- 不内建 LAN/WAN 接口角色和 DHCP server
+- 需要外部网络将客户端默认网关指向此 VM
+
+> **Fail-open 说明**：系统启动后前 2 分钟使用 fallback 直连配置（无 Dashboard），待订阅拉取成功后切换到完整代理模式。
 
 ## 命令
 

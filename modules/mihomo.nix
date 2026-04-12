@@ -27,12 +27,15 @@ let
     };
   };
 
-  fallbackConfig = baseConfig // {
+  fallbackConfig = (removeAttrs baseConfig [ "external-controller" ]) // {
     mode = "direct";
     log-level = "info";
     dns = baseConfig.dns // {
       enhanced-mode = "redir-host";
-      default-nameserver = [ "223.5.5.5" "119.29.29.29" ];
+      default-nameserver = [
+        "223.5.5.5"
+        "119.29.29.29"
+      ];
       nameserver = [
         "https://dns.alidns.com/dns-query#h3=true"
         "https://doh.pub/dns-query"
@@ -48,18 +51,14 @@ let
     set -euo pipefail
     umask 077
 
-    if [ ! -f "${envFile}" ]; then
-      echo "No subscription configured: ${envFile} not found"
-      echo "Create it with: echo 'SUBSCRIPTION_URL=https://your-url' > ${envFile}"
-      echo "Optional: add SECRET=your-secret for API authentication"
+    if [ -z "''${CONFIG_URL:-}" ]; then
+      echo "CONFIG_URL not set in ${envFile}"
       exit 0
     fi
 
-    source "${envFile}"
-
-    if [ -z "''${SUBSCRIPTION_URL:-}" ]; then
-      echo "SUBSCRIPTION_URL not set in ${envFile}"
-      exit 0
+    if [ -z "''${SECRET:-}" ]; then
+      echo "SECRET not set in ${envFile}; required for external-controller API authentication"
+      exit 1
     fi
 
     tmp="$(mktemp -p "${stateDir}" .mihomo-config.XXXXXX.yaml)"
@@ -73,15 +72,29 @@ let
     echo "Fetching subscription..."
     ${pkgs.curlMinimal}/bin/curl -fsSL --connect-timeout 30 --max-time 120 \
       --retry 3 --retry-delay 2 --retry-all-errors \
-      -o "$tmp" "$SUBSCRIPTION_URL"
+      -o "$tmp" "$CONFIG_URL"
+
+    echo "Sanitizing subscription..."
+    ${pkgs.yq-go}/bin/yq -i '
+      del(.routing-mark) |
+      del(.tun) |
+      del(.listeners) |
+      del(.port) |
+      del(.socks-port) |
+      del(.redir-port) |
+      del(.mixed-port) |
+      del(.tproxy-port) |
+      del(.allow-lan) |
+      del(.bind-address) |
+      del(.external-controller) |
+      del(.secret)
+    ' "$tmp"
 
     ${pkgs.yq-go}/bin/yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
       "$tmp" "${baseConfigYaml}" > "$tmp.merged"
     mv "$tmp.merged" "$tmp"
 
-    if [ -n "''${SECRET:-}" ]; then
-      ${pkgs.yq-go}/bin/yq -i '.secret = "'"$SECRET"'"' "$tmp"
-    fi
+    SECRET="$SECRET" ${pkgs.yq-go}/bin/yq -i '.secret = strenv(SECRET)' "$tmp"
 
     echo "Validating configuration..."
     if ! output=$(${pkgs.mihomo}/bin/mihomo -t -f "$tmp" -d "${stateDir}" 2>&1); then
@@ -131,6 +144,7 @@ in
     serviceConfig = {
       Type = "oneshot";
       ExecStart = subscribeScript;
+      EnvironmentFile = [ "-${envFile}" ];
 
       UMask = "0077";
       PrivateTmp = true;
@@ -148,7 +162,6 @@ in
       SystemCallArchitectures = "native";
 
       ReadWritePaths = [ stateDir ];
-      ReadOnlyPaths = [ envFile ];
     };
   };
 
