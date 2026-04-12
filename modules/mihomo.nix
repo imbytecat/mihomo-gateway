@@ -11,7 +11,7 @@ let
 
   stateDir = "/var/lib/mihomo";
   configFile = "${stateDir}/config.yaml";
-  envFile = "/etc/mihomo/mihomo.env";
+  envFile = "/etc/mihomo/env";
 
   baseConfig = {
     allow-lan = true;
@@ -49,7 +49,6 @@ let
 
   subscribeScript = pkgs.writeShellScript "mihomo-subscribe" ''
     set -euo pipefail
-    umask 077
 
     if [ -z "''${CONFIG_URL:-}" ]; then
       echo "CONFIG_URL not set in ${envFile}"
@@ -62,10 +61,9 @@ let
     fi
 
     tmp="$(mktemp -p "${stateDir}" .mihomo-config.XXXXXX.yaml)"
-    new="${configFile}.new"
 
     cleanup() {
-      rm -f "$tmp" "$new"
+      rm -f "$tmp"
     }
     trap cleanup EXIT
 
@@ -109,11 +107,10 @@ let
       exit 0
     fi
 
-    ${pkgs.coreutils}/bin/install -m 600 "$tmp" "$new"
+    cp -f "$tmp" "${configFile}"
     if [ -f "${configFile}" ]; then
-      ${pkgs.coreutils}/bin/cp -f "${configFile}" "${configFile}.bak"
+      cp -f "${configFile}" "${configFile}.bak"
     fi
-    ${pkgs.coreutils}/bin/mv -f "$new" "${configFile}"
 
     echo "Configuration updated; restarting mihomo"
     systemctl restart mihomo
@@ -139,28 +136,15 @@ in
 
   systemd.services.mihomo-subscribe = {
     description = "Fetch and validate Mihomo subscription";
-    after = [ "network-online.target" ];
+    after = [
+      "network-online.target"
+      "mihomo.service"
+    ];
     wants = [ "network-online.target" ];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = subscribeScript;
       EnvironmentFile = [ "-${envFile}" ];
-
-      UMask = "0077";
-      PrivateTmp = true;
-      NoNewPrivileges = true;
-      ProtectSystem = "strict";
-      ProtectHome = true;
-      PrivateDevices = true;
-      ProtectKernelTunables = true;
-      ProtectKernelModules = true;
-      ProtectControlGroups = true;
-      LockPersonality = true;
-      MemoryDenyWriteExecute = true;
-      RestrictSUIDSGID = true;
-      RestrictRealtime = true;
-      SystemCallArchitectures = "native";
-
       ReadWritePaths = [ stateDir ];
     };
   };
@@ -169,10 +153,17 @@ in
     description = "Periodic Mihomo subscription update";
     wantedBy = [ "timers.target" ];
     timerConfig = {
-      OnBootSec = "2min";
       OnUnitActiveSec = "6h";
-      RandomizedDelaySec = "5min";
       Persistent = true;
+    };
+  };
+
+  systemd.paths.mihomo-subscribe = {
+    description = "Trigger subscription fetch when env file changes";
+    wantedBy = [ "multi-user.target" ];
+    pathConfig = {
+      PathChanged = envFile;
+      Unit = "mihomo-subscribe.service";
     };
   };
 
@@ -191,13 +182,6 @@ in
       AmbientCapabilities = lib.mkForce [ "CAP_NET_ADMIN" ];
       CapabilityBoundingSet = lib.mkForce [ "CAP_NET_ADMIN" ];
       PrivateUsers = lib.mkForce false;
-
-      NoNewPrivileges = true;
-      PrivateTmp = true;
-      ProtectSystem = "strict";
-      ProtectHome = true;
-      LockPersonality = true;
-      RestrictSUIDSGID = true;
 
       LimitNOFILE = 1000000;
       StateDirectory = "mihomo";

@@ -33,11 +33,10 @@ just build       # 构建 VM 镜像 (qcow2)
 SSH 登录后创建环境变量文件：
 
 ```bash
-cat > /etc/mihomo/mihomo.env << 'EOF'
+cat > /etc/mihomo/env << 'EOF'
 CONFIG_URL=https://your-config-url
 SECRET=your-api-secret
 EOF
-chmod 600 /etc/mihomo/mihomo.env
 ```
 
 | 变量               | 必需 | 说明                                    |
@@ -47,15 +46,16 @@ chmod 600 /etc/mihomo/mihomo.env
 
 ### 服务说明
 
-| 服务                       | 类型    | 作用                     |
-| -------------------------- | ------- | ------------------------ |
-| `mihomo.service`           | 常驻    | 运行 Mihomo 代理         |
-| `mihomo-subscribe.service` | oneshot | 拉取订阅、验证、替换配置 |
-| `mihomo-subscribe.timer`   | timer   | 定时触发订阅拉取         |
+| 服务                       | 类型    | 作用                             |
+| -------------------------- | ------- | -------------------------------- |
+| `mihomo.service`           | 常驻    | 运行 Mihomo 代理                 |
+| `mihomo-subscribe.service` | oneshot | 拉取订阅、验证、替换配置         |
+| `mihomo-subscribe.timer`   | timer   | 每 6 小时定时触发订阅拉取        |
+| `mihomo-subscribe.path`    | path    | 监听环境变量文件变化，自动触发订阅拉取 |
 
 **启动流程**：
-1. 系统启动 → mihomo 使用现有配置启动
-2. 2 分钟后 → timer 触发 subscribe 拉取订阅
+1. 系统启动 → mihomo 使用 fallback 直连配置启动
+2. 创建/修改 `/etc/mihomo/env` → path unit 自动触发订阅拉取
 3. 订阅验证通过 → 替换配置并重启 mihomo
 4. 之后每 6 小时自动更新
 
@@ -90,7 +90,7 @@ dns:
 - 不内建 LAN/WAN 接口角色和 DHCP server
 - 需要外部网络将客户端默认网关指向此 VM
 
-> **Fail-open 说明**：系统启动后前 2 分钟使用 fallback 直连配置（无 Dashboard），待订阅拉取成功后切换到完整代理模式。
+> **Fail-open 说明**：系统启动后使用 fallback 直连配置（无 Dashboard），创建环境变量文件后自动拉取订阅并切换到完整代理模式。
 
 ## 开发
 
