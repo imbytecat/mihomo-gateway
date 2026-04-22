@@ -182,11 +182,8 @@ in
       CapabilityBoundingSet = lib.mkForce [ "CAP_NET_ADMIN" ];
       PrivateUsers = lib.mkForce false;
 
-      # NixOS 上游默认 RestrictAddressFamilies="AF_INET AF_INET6" 禁止 AF_NETLINK，
-      # Go 的 net/route.FetchRIB 用 netlink 枚举路由，UDP DIRECT dialer 依赖此能力。
-      # 缺失 AF_NETLINK 会导致 socket(AF_NETLINK,...) 返回 EAFNOSUPPORT，
-      # 报错 "netlinkrib: address family not supported by protocol"，所有 UDP DIRECT 失败。
-      # TCP DIRECT 不走该路径所以不受影响。
+      # 上游默认只允许 AF_INET{,6}；Go net/route.FetchRIB (UDP DIRECT dialer) 需要
+      # AF_NETLINK 枚举路由，否则所有 UDP DIRECT 静默失败。TCP DIRECT 不受影响。
       RestrictAddressFamilies = lib.mkForce [
         "AF_INET"
         "AF_INET6"

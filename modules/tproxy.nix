@@ -1,4 +1,3 @@
-# TPROXY 网络层 (sysctl + routing + nftables)
 { ... }:
 
 let
@@ -14,9 +13,7 @@ in
   boot.kernel.sysctl = {
     "net.ipv4.ip_forward" = 1;
 
-    # TPROXY 必需：rp_filter 有效值 = max(conf.all, conf.INTERFACE)，
-    # NixOS 内核默认 conf.INTERFACE.rp_filter = 2，仅设 all/default = 0 不够。
-    # 必须通过 networkd 在每个接口上显式禁用。
+    # rp_filter 有效值 = max(all, interface)；必须逐接口禁用，见 networkd 配置
     "net.ipv4.conf.all.rp_filter" = 0;
     "net.ipv4.conf.default.rp_filter" = 0;
     "net.ipv4.conf.all.send_redirects" = 0;
@@ -26,7 +23,6 @@ in
     "net.ipv6.conf.all.forwarding" = 0;
     "net.ipv6.conf.default.forwarding" = 0;
 
-    # TCP BBR 拥塞控制
     "net.core.default_qdisc" = "fq";
     "net.ipv4.tcp_congestion_control" = "bbr";
   };
@@ -74,7 +70,7 @@ in
     ];
     routes = [
       {
-        # 将标记流量路由到本机，由 Mihomo 接管
+        # 把打了 fwmark 的包投递回本机，由 mihomo TPROXY socket 接管
         Destination = "0.0.0.0/0";
         Type = "local";
         Table = routingTable;
