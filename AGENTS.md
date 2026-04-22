@@ -71,6 +71,7 @@ Fallback 配置通过 `systemd.tmpfiles.rules` 的 `C`（copy-if-absent）部署
 - **不需要 `src_valid_mark`**：`rp_filter=0` 时反向路径检查完全跳过。
 - BBR + fq 是当前场景最优的拥塞控制组合。BBRv3 未进主线内核，不要引入。
 - 只需 `CAP_NET_ADMIN`（所有端口 >1024，无需 `CAP_NET_BIND_SERVICE`）。
+- **必须放开 `AF_NETLINK`**：NixOS 上游 `services.mihomo` 默认 `RestrictAddressFamilies="AF_INET AF_INET6"`。Go 的 `net/route.FetchRIB` 依赖 netlink 枚举路由，UDP DIRECT dialer 用它选出接口。缺失 AF_NETLINK 会让 `socket(AF_NETLINK,...)` 返回 EAFNOSUPPORT，日志为 `netlinkrib: address family not supported by protocol`，**所有 UDP DIRECT 静默失败**（TCP DIRECT 走 `net.Dial` 不受影响）。
 - nftables `inet` 族的 DNS 劫持表天然覆盖 IPv4+IPv6。
 - IPv6 转发被 sysctl 禁用 + `ip6 mihomo` 表 forward drop 双重阻断。
 - `tproxy.nix` 中的 sysctl 是最小完整集（TPROXY 正确性 + 转发 + BBR），不要再添加其他调优项。

@@ -75,6 +75,28 @@ systemd.network.networks."99-tproxy" = {
 
 **不需要 `src_valid_mark`**: `rp_filter=0` 时反向路径检查完全跳过，不需要 `src_valid_mark=1`。
 
+### AF_NETLINK 陷阱（已踩坑并修复）
+
+**症状**: TCP 代理完全正常，但所有 UDP DIRECT 失败。日志刷屏：
+```
+[UDP] dial DIRECT ... error: route ip+net: netlinkrib: address family not supported by protocol
+```
+表现为客户端 QUIC、DNS over UDP、NTP、Tailscale/WireGuard、游戏联机全部不通。
+
+**根因**: NixOS 上游 `services.mihomo` 单元默认 `RestrictAddressFamilies="AF_INET AF_INET6"`。Go 的 `net/route.FetchRIB`（UDP DIRECT dialer 用来枚举路由/选接口）依赖 `socket(AF_NETLINK, ...)`。被 seccomp 挡掉后返回 `EAFNOSUPPORT`。TCP DIRECT 走 `net.Dial`，内核直接路由，不触发 netlink 枚举，所以不受影响。
+
+**修复**: 在 `mihomo.nix` 的 `systemd.services.mihomo.serviceConfig` 里放开 AF_NETLINK：
+
+```nix
+RestrictAddressFamilies = lib.mkForce [
+  "AF_INET"
+  "AF_INET6"
+  "AF_NETLINK"
+];
+```
+
+**定位方法**: `systemctl show mihomo | grep RestrictAddressFamilies` 看当前限制；mihomo 日志里 `netlinkrib` 关键字 = 该问题的指纹。
+
 ### 排查流程（从上到下）
 
 1. **确认基础设施**:
