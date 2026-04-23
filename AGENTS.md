@@ -125,3 +125,5 @@ Conventional Commits，中文描述：`feat:` / `fix:` / `refactor:` / `docs:` /
 ## CI
 
 `.github/workflows/release.yml`，仅 `workflow_dispatch` 手动触发：`just build` → 上传 qcow2 到 GitHub Release。
+
+workflow 里 `accept-flake-config = false` 刻意拒掉 flake `nixConfig.substituters`，让 CI 走默认 cache.nixos.org（runner 境外，走 SJTUG 反而慢）。

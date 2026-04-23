@@ -127,15 +127,7 @@ journalctl -u mihomo -u mihomo-subscribe
 
 ## 国内加速
 
-`flake.nix` 里配了上海交大镜像（`mirror.sjtu.edu.cn`）作为 substituter。第一次跑 `nix build` / `install` / `switch` 时 Nix 会问：
-
-```
-do you want to allow configuration setting 'substituters' ... (y/N)?
-```
-
-答 `y` 接受即可，之后 SJTUG 永久生效。也可以一次性在 `~/.config/nix/nix.conf` 里加 `accept-flake-config = true` 省掉每次 prompt。
-
-境外用户不用接受，走 `cache.nixos.org` 默认更快。GitHub Actions 工作流已显式关掉 `accept-flake-config`，CI 构建走 cache.nixos.org 不受镜像影响。
+第一次构建时 Nix 会问 `do you want to allow configuration setting 'substituters' ... (y/N)?` —— 国内答 `y`（走上海交大镜像），境外答 `N`（走默认 cache.nixos.org）。
 
 ## 开发
 
