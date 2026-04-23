@@ -5,19 +5,18 @@
 - 插在现有网络旁边，不替代主路由
 - 客户端只需把默认网关指过来，流量自动按规则走代理
 - TPROXY 模式（内核态重定向），比 TUN 性能好
-- 三种部署方式任选：qcow2 镜像 / 远程刷机 / 挂进你自己的 NixOS
+- 两种部署方式任选：丢个 qcow2 镜像 / 远程把一台机器刷成网关
 
 > ⚠️ **这是作者自用 appliance 的开源版本**。`modules/core.nix` 里预置的是作者的 SSH 公钥，自用前请 fork 并改掉，否则你登不进去。
 
-## 怎么用
+## 部署
 
 先选场景：
 
-| 我想...                              | 用这个      | 一条命令                 |
-| ------------------------------------ | ----------- | ------------------------ |
-| 导入 Proxmox / QEMU / Libvirt 直接跑 | qcow2 镜像  | `just build`             |
+| 我想...                              | 用这个         | 一条命令              |
+| ------------------------------------ | -------------- | --------------------- |
+| 导入 Proxmox / QEMU / Libvirt 直接跑 | qcow2 镜像     | `just build`          |
 | 把一台 VPS / 物理机远程刷成网关      | nixos-anywhere | `just install <IP>`   |
-| 我已经在跑 NixOS，想加代理网关功能   | NixOS 模块  | 见下方方式 C             |
 
 ### 方式 A：qcow2 镜像
 
@@ -43,42 +42,14 @@ just install 192.0.2.10
 ```
 
 前提：
+
 - 能用你本机的 ssh key 以 root 登录目标机
 - 目标机硬盘是 `/dev/sda`；不是的话先改 `profiles/disko.nix`：
   ```nix
   diskDevice = "/dev/nvme0n1";   # 或 /dev/vda、/dev/sdb 等
   ```
 
-装完后目标机会重启进新系统，hostname 变成 `mihomo-gateway`，继续走 [部署后配置](#部署后配置) 。
-
-### 方式 C：已有 NixOS，加 gateway 模块
-
-本仓库的 `nixosModules.default` 就是"平台无关的代理网关逻辑"，直接 import 到你自己的 flake：
-
-```nix
-{
-  inputs.mihomo-gateway.url = "github:imbytecat/mihomo-gateway";
-
-  outputs = { nixpkgs, mihomo-gateway, ... }: {
-    nixosConfigurations.my-router = nixpkgs.lib.nixosSystem {
-      modules = [
-        ./hardware-configuration.nix
-        mihomo-gateway.nixosModules.default
-
-        # 覆盖默认值（SSH key、hostname、时区任选）
-        {
-          users.users.root.openssh.authorizedKeys.keys = [
-            "ssh-ed25519 AAAA... your-key"
-          ];
-          networking.hostName = "my-router";
-        }
-      ];
-    };
-  };
-}
-```
-
-然后照常 `sudo nixos-rebuild switch --flake .#my-router`。
+装完后目标机会重启进新系统，hostname 变成 `mihomo-gateway`。
 
 ## 部署后配置
 
@@ -122,6 +93,28 @@ journalctl -u mihomo-subscribe -f    # 看进度/报错
 
 > 本网关**不做 DHCP / NAT**，只拦截转发流量。所以不替代主路由，插在主路由旁边即可。
 
+## 更新
+
+仓库有新版本后，怎么把改动推到已经跑起来的 gateway？**取决于部署方式**：
+
+### 方式 B（nixos-anywhere）装的
+
+目标机里 `nix.enable = true`，正常 rebuild switch 即可。两种姿势：
+
+```bash
+# 姿势 1：在 gateway 本机，直接从 github 拉最新
+nixos-rebuild switch --flake github:imbytecat/mihomo-gateway#bare-metal
+
+# 姿势 2：在开发机 pull 完本仓库后，远程推送
+just switch 192.0.2.10
+```
+
+### 方式 A（qcow2 镜像）装的
+
+qcow2 里 `nix.enable = false`（appliance 瘦身），**无法就地 rebuild**。要升级只能重新 build 镜像换盘，或者改用方式 B 重装一次。
+
+> `/etc/mihomo/env` 这种运行时状态在 `/etc`，换盘前记得备份。
+
 ## 常见问题
 
 **开机后 SSH 连不上 / 没拿到 IP**
@@ -142,10 +135,19 @@ journalctl -u mihomo -u mihomo-subscribe
 **能不能用 IPv6**
 转发被 sysctl + nftables 双重阻断，**是故意的**。避免客户端 v6 流量绕过代理。
 
+## 国内用户提速（可选）
+
+`cache.nixos.org` 在国内拉取较慢，`just build` / `install` / `switch` 前建议在本机 `~/.config/nix/nix.conf` 加一条国内镜像：
+
+```
+extra-substituters = https://mirror.sjtu.edu.cn/nix-channels/store
+```
+
+也可以换成 TUNA、USTC、NJU 任意一个，挑最快的即可。**不建议写进仓库 `flake.nix`**：GitHub Actions 在境外，走 cache.nixos.org 更快，写进去反而拖慢 CI。
+
 ## 开发
 
 ```bash
-nix develop         # dev shell: just / nixd / nixfmt
 just build          # 构建 qcow2
 just install HOST   # nixos-anywhere 装到 HOST
 just switch  HOST   # rebuild switch 到 HOST
@@ -153,7 +155,3 @@ just check          # 构建 vm + bare-metal toplevel 验证
 just fmt            # nixfmt 格式化
 just update         # 更新 flake inputs
 ```
-
-Flake 输出仅 `x86_64-linux`，macOS 上跑不了。
-
-架构细节、TPROXY 陷阱、订阅脚本逻辑等见 [`AGENTS.md`](./AGENTS.md)。

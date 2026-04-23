@@ -24,9 +24,6 @@
       version = self.shortRev or self.dirtyShortRev or "unknown";
     in
     {
-      # 想在已有 NixOS 上加 mihomo gateway 功能：在你自己的 flake imports 这个
-      nixosModules.default = ./modules/core.nix;
-
       nixosConfigurations = {
         # qcow2 镜像构建目标（瘦身 profile：minimal + headless，无 nix）
         vm = nixpkgs.lib.nixosSystem {

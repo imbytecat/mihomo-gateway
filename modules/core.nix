@@ -10,12 +10,12 @@
     ./mihomo.nix
   ];
 
-  system.stateVersion = lib.mkDefault "25.11";
+  system.stateVersion = "25.11";
   i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" ];
   fonts.fontconfig.enable = false;
 
   networking = {
-    hostName = lib.mkDefault "mihomo-gateway";
+    hostName = "mihomo-gateway";
     useNetworkd = true;
     useDHCP = false;
     firewall.enable = false;
@@ -44,7 +44,7 @@
   };
   environment.etc."resolv.conf".source = lib.mkForce "/run/systemd/resolve/resolv.conf";
 
-  time.timeZone = lib.mkDefault "Asia/Shanghai";
+  time.timeZone = "Asia/Shanghai";
 
   environment.systemPackages = with pkgs; [
     micro
@@ -62,8 +62,8 @@
   };
 
   users.users.root = {
-    hashedPassword = lib.mkDefault "!";
-    openssh.authorizedKeys.keys = lib.mkDefault [
+    hashedPassword = "!";
+    openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDRTOo48gzzRGT+bF9dzJCFJu61YgsQVONFtxU9kTPIg"
     ];
   };

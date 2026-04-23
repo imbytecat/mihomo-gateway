@@ -1,6 +1,6 @@
 # AGENTS.md
 
-NixOS 透明代理网关（Mihomo + nftables TPROXY）。三种部署方式：qcow2 镜像 / nixos-anywhere / nixos-rebuild。
+NixOS 透明代理网关（Mihomo + nftables TPROXY）。部署：qcow2 镜像 / nixos-anywhere；日常更新走 nixos-rebuild。
 
 ## 项目定位
 
@@ -12,12 +12,12 @@ NixOS 透明代理网关（Mihomo + nftables TPROXY）。三种部署方式：qc
 
 ## 命令
 
-所有 flake 输出仅 `x86_64-linux`，macOS 上**什么都跑不了**。
+所有 flake 输出仅 `x86_64-linux`。
 
 ```bash
 just build       # 构建 qcow2 镜像 (vm profile)
 just install H   # nixos-anywhere 装 bare-metal 配置到目标机
-just switch H    # nixos-rebuild switch bare-metal 配置到已有 NixOS
+just switch H    # nixos-rebuild switch 更新已部署的 gateway
 just check       # nix flake check（构建 vm + bare-metal toplevel）
 just fmt         # nixfmt
 just update      # 更新 flake inputs
@@ -38,9 +38,7 @@ profiles/ - 平台适配
   disko.nix       # 分区方案
 ```
 
-`modules/core.nix` = `imports tproxy + mihomo` + 通用 networking/ssh/resolved/timezone。这就是 `nixosModules.default` 暴露给外部 flake 的东西，**不能引入任何平台假设**（不绑 fileSystems、不绑 boot loader、不绑 nix.enable）。
-
-`profiles/*` 才能写硬编码的 fileSystems / boot loader / qemu-guest / disko。
+`modules/core.nix` = `imports tproxy + mihomo` + 通用 networking/ssh/resolved/timezone，**不绑任何平台假设**（无 fileSystems / 无 boot loader / 无 nix.enable 决策）。`profiles/*` 才能写这些硬编码。
 
 ### 单臂代理 / Appliance 行为
 
@@ -65,24 +63,7 @@ profiles/ - 平台适配
 
 **qcow2 体积敏感**，新增 vm profile 配置前先想下能不能砍。bare-metal 随意。
 
-### nixosModules.default 的契约
-
-外部 flake 这样用：
-
-```nix
-imports = [
-  inputs.mihomo-gateway.nixosModules.default
-  ./hardware-configuration.nix
-  # 用户自己的其他配置
-];
-```
-
-为此 `core.nix` 必须：
-- 不引入 fileSystems / boot loader（让用户的 hardware-configuration.nix 接管）
-- 用 `lib.mkDefault` 包裹可能被外部覆盖的字段：`hostName`、`stateVersion`、`timeZone`、`users.users.root.{hashedPassword,openssh.authorizedKeys.keys}`
-- 不依赖任何 profile 暴露的状态
-
-新增 core 配置时**先想这条**：会不会和外部 flake 冲突？
+**qcow2 不支持就地升级**（`nix.enable=false`）：要更新只能重 build 镜像换盘；nixos-anywhere 装的走 rebuild switch。
 
 ## 模块关系
 
