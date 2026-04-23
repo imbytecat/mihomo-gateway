@@ -1,63 +1,29 @@
 {
   pkgs,
   lib,
-  modulesPath,
   ...
 }:
 
 {
   imports = [
-    ./modules/tproxy.nix
-    ./modules/mihomo.nix
-    "${modulesPath}/profiles/qemu-guest.nix"
-    "${modulesPath}/profiles/minimal.nix"
-    "${modulesPath}/profiles/headless.nix"
+    ./tproxy.nix
+    ./mihomo.nix
   ];
 
-  system.stateVersion = "25.11";
+  system.stateVersion = lib.mkDefault "25.11";
   i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" ];
-
-  nix.enable = false;
   fonts.fontconfig.enable = false;
 
-  boot.loader.systemd-boot = {
-    enable = true;
-    graceful = true;
-  };
-  boot.loader.efi.canTouchEfiVariables = false;
-  boot.growPartition = true;
-
-  boot.kernelParams = [
-    "console=ttyS0,115200n8"
-    "console=tty0"
-  ];
-
-  services.qemuGuest.enable = true;
-
-  fileSystems."/" = {
-    device = "/dev/disk/by-label/nixos";
-    fsType = "ext4";
-    autoResize = true;
-  };
-
-  fileSystems."/boot" = {
-    device = "/dev/disk/by-label/ESP";
-    fsType = "vfat";
-    options = [
-      "fmask=0077"
-      "dmask=0077"
-    ];
-  };
-
   networking = {
-    hostName = "mihomo-gateway";
+    hostName = lib.mkDefault "mihomo-gateway";
     useNetworkd = true;
     useDHCP = false;
     firewall.enable = false;
   };
 
-  systemd.network.networks."50-ens" = {
-    matchConfig.Name = "ens*";
+  # 匹配所有物理 ethernet 接口（eno*/ens*/enp*/eth*），单臂拓扑通吃
+  systemd.network.networks."50-lan" = {
+    matchConfig.Name = "en* eth*";
     networkConfig = {
       DHCP = "yes";
       # rp_filter 必须逐接口禁用：sysctl all/default 覆盖不了已存在接口的默认值 2
@@ -78,7 +44,8 @@
   };
   environment.etc."resolv.conf".source = lib.mkForce "/run/systemd/resolve/resolv.conf";
 
-  time.timeZone = "Asia/Shanghai";
+  time.timeZone = lib.mkDefault "Asia/Shanghai";
+
   environment.systemPackages = with pkgs; [
     micro
     curlMinimal
@@ -95,8 +62,8 @@
   };
 
   users.users.root = {
-    hashedPassword = "!";
-    openssh.authorizedKeys.keys = [
+    hashedPassword = lib.mkDefault "!";
+    openssh.authorizedKeys.keys = lib.mkDefault [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDRTOo48gzzRGT+bF9dzJCFJu61YgsQVONFtxU9kTPIg"
     ];
   };

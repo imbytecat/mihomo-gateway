@@ -1,30 +1,56 @@
 {
-  description = "Mihomo Gateway - NixOS VM 透明代理网关";
+  description = "Mihomo Gateway - NixOS 透明代理网关";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    disko = {
+      url = "github:nix-community/disko/latest";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
 
   outputs =
-    { self, nixpkgs }:
+    {
+      self,
+      nixpkgs,
+      disko,
+    }:
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
       lib = nixpkgs.lib;
-      nixosConfig = self.nixosConfigurations.default;
 
+      vmConfig = self.nixosConfigurations.vm;
       version = self.shortRev or self.dirtyShortRev or "unknown";
     in
     {
-      nixosConfigurations.default = nixpkgs.lib.nixosSystem {
-        inherit system;
-        modules = [ ./configuration.nix ];
+      # 想在已有 NixOS 上加 mihomo gateway 功能：在你自己的 flake imports 这个
+      nixosModules.default = ./modules/core.nix;
+
+      nixosConfigurations = {
+        # qcow2 镜像构建目标（瘦身 profile：minimal + headless，无 nix）
+        vm = nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [ ./profiles/vm.nix ];
+        };
+
+        # 物理机 / nixos-anywhere 目标（完整默认 + disko）
+        bare-metal = nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [
+            disko.nixosModules.disko
+            ./profiles/disko.nix
+            ./profiles/bare-metal.nix
+          ];
+        };
       };
 
       packages.${system} = {
-        default = nixosConfig.config.system.build.toplevel;
+        default = self.packages.${system}.image;
         image = import "${nixpkgs}/nixos/lib/make-disk-image.nix" {
           inherit pkgs lib;
           baseName = "mihomo-gateway-${version}";
-          config = nixosConfig.config;
+          config = vmConfig.config;
           format = "qcow2-compressed";
           partitionTableType = "efi";
           diskSize = "auto";
@@ -43,6 +69,9 @@
 
       formatter.${system} = pkgs.nixfmt;
 
-      checks.${system}.build = self.packages.${system}.default;
+      checks.${system} = {
+        vm = vmConfig.config.system.build.toplevel;
+        bare-metal = self.nixosConfigurations.bare-metal.config.system.build.toplevel;
+      };
     };
 }

@@ -6,9 +6,17 @@ default:
 
 # 构建 qcow2 虚拟机镜像
 build:
-    nix build '.#packages.{{system}}.image'
+    nix build '.#image'
 
-# 检查 flake (仅 Linux amd64)
+# 用 nixos-anywhere 远程装系统到目标机（裸机 / 已有 Linux，会格式化磁盘）
+install HOST:
+    nix run github:nix-community/nixos-anywhere -- --flake '.#bare-metal' root@{{HOST}}
+
+# 向已装好 NixOS 的目标机推送 bare-metal 配置
+switch HOST:
+    nixos-rebuild switch --flake '.#bare-metal' --target-host root@{{HOST}}
+
+# 检查 flake（等价于构建 vm + bare-metal toplevel，仅 Linux amd64）
 check:
     nix flake check
 
