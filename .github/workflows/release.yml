@@ -19,7 +19,6 @@ jobs:
           enable_kvm: true
           extra_nix_config: |
             system-features = nixos-test benchmark big-parallel kvm
-            accept-flake-config = false
 
       - name: Build VM image
         run: nix develop -c just build

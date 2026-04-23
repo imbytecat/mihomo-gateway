@@ -18,6 +18,11 @@
     "flakes"
   ];
   nix.nixPath = lib.mkForce [ ];
+  # gateway 在国内网络，自己 rebuild 时走 SJTU；开发机 / CI 因为本机构建 + SCP 推送，无需配镜像
+  nix.settings.substituters = [
+    "https://mirror.sjtu.edu.cn/nix-channels/store"
+    "https://cache.nixos.org/"
+  ];
 
   system.stateVersion = "25.11";
   i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" ];

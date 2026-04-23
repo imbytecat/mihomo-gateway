@@ -125,10 +125,6 @@ journalctl -u mihomo -u mihomo-subscribe
 **能不能用 IPv6**
 转发被 sysctl + nftables 双重阻断，**是故意的**。避免客户端 v6 流量绕过代理。
 
-## 国内加速
-
-第一次构建时 Nix 会问 `do you want to allow configuration setting 'substituters' ... (y/N)?` —— 国内答 `y`（走上海交大镜像），境外答 `N`（走默认 cache.nixos.org）。
-
 ## 开发
 
 ```bash

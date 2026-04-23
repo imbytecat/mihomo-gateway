@@ -126,4 +126,6 @@ Conventional Commits，中文描述：`feat:` / `fix:` / `refactor:` / `docs:` /
 
 `.github/workflows/release.yml`，仅 `workflow_dispatch` 手动触发：`just build` → 上传 qcow2 到 GitHub Release。
 
-workflow 里 `accept-flake-config = false` 刻意拒掉 flake `nixConfig.substituters`，让 CI 走默认 cache.nixos.org（runner 境外，走 SJTUG 反而慢）。
+## 镜像
+
+国内镜像只写在 `modules/core.nix` 的 `nix.settings.substituters`（SJTU 优先），即 gateway 自己 `nixos-rebuild switch` 时用。开发机 / CI / `just install|switch` 都走默认 cache.nixos.org——本机构建后 SCP 推送，目标机不 substitute（`--no-substitute-on-destination`）。
