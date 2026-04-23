@@ -95,25 +95,15 @@ journalctl -u mihomo-subscribe -f    # 看进度/报错
 
 ## 更新
 
-仓库有新版本后，怎么把改动推到已经跑起来的 gateway？**取决于部署方式**：
-
-### 方式 B（nixos-anywhere）装的
-
-目标机里 `nix.enable = true`，正常 rebuild switch 即可。两种姿势：
+两种部署方式都支持就地 rebuild switch：
 
 ```bash
-# 姿势 1：在 gateway 本机，直接从 github 拉最新
+# 在 gateway 本机，从 github 拉最新（qcow2 用 #vm，nixos-anywhere 装的用 #bare-metal）
 nixos-rebuild switch --flake github:imbytecat/mihomo-gateway#bare-metal
 
-# 姿势 2：在开发机 pull 完本仓库后，远程推送
+# 或从开发机远程推
 just switch 192.0.2.10
 ```
-
-### 方式 A（qcow2 镜像）装的
-
-qcow2 里 `nix.enable = false`（appliance 瘦身），**无法就地 rebuild**。要升级只能重新 build 镜像换盘，或者改用方式 B 重装一次。
-
-> `/etc/mihomo/env` 这种运行时状态在 `/etc`，换盘前记得备份。
 
 ## 常见问题
 

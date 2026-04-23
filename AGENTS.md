@@ -51,19 +51,18 @@ profiles/ - 平台适配
 
 | 项 | vm.nix | bare-metal.nix |
 |----|--------|----------------|
-| `nix.enable` | `false`（省几百 MB） | `true`（保 rebuild 能力） |
-| `profiles/minimal` | 加载（砍 doc/rebuild/...） | 不加载 |
-| `profiles/headless` | 加载（砍 X/终端） | 不加载 |
+| `profiles/minimal` | 加载 | 不加载 |
+| `profiles/headless` | 加载 | 不加载 |
 | `profiles/qemu-guest` | 加载 | 不加载 |
-| `boot.growPartition` | `true`（首次启动扩盘） | 不设 |
-| `boot.loader.efi.canTouchEfiVariables` | `false`（镜像构建无 efivarfs） | `true`（rebuild 后写 EFI） |
+| `boot.growPartition` | `true` | 不设 |
+| `boot.loader.efi.canTouchEfiVariables` | `false`（镜像构建无 efivarfs） | `true` |
 | `boot.kernelParams` 串口 | 设 | 不设 |
 | `fileSystems` | 硬编 by-label | 由 disko 生成 |
 | `services.qemuGuest.enable` | `true` | 不设 |
 
 **qcow2 体积敏感**，新增 vm profile 配置前先想下能不能砍。bare-metal 随意。
 
-**qcow2 不支持就地升级**（`nix.enable=false`）：要更新只能重 build 镜像换盘；nixos-anywhere 装的走 rebuild switch。
+`nix.enable` 在 `modules/core.nix` 里两种 profile 共用：纯 flake 工作流（`channel.enable = false`、`nixPath = []`），qcow2 因此也支持就地 `nixos-rebuild switch --flake`。
 
 ## 模块关系
 

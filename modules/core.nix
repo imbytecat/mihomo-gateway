@@ -10,6 +10,15 @@
     ./mihomo.nix
   ];
 
+  # 纯 flake 工作流
+  nix.enable = true;
+  nix.channel.enable = false;
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
+  nix.nixPath = lib.mkForce [ ];
+
   system.stateVersion = "25.11";
   i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" ];
   fonts.fontconfig.enable = false;
@@ -21,7 +30,7 @@
     firewall.enable = false;
   };
 
-  # 匹配所有物理 ethernet 接口（eno*/ens*/enp*/eth*），单臂拓扑通吃
+  # 单臂拓扑，所有 ethernet 通吃
   systemd.network.networks."50-lan" = {
     matchConfig.Name = "en* eth*";
     networkConfig = {
