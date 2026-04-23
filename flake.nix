@@ -1,6 +1,13 @@
 {
   description = "Mihomo Gateway - NixOS 透明代理网关";
 
+  nixConfig = {
+    substituters = [
+      "https://mirror.sjtu.edu.cn/nix-channels/store"
+      "https://cache.nixos.org/"
+    ];
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     disko = {

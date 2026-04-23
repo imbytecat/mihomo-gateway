@@ -125,15 +125,17 @@ journalctl -u mihomo -u mihomo-subscribe
 **能不能用 IPv6**
 转发被 sysctl + nftables 双重阻断，**是故意的**。避免客户端 v6 流量绕过代理。
 
-## 国内用户提速（可选）
+## 国内加速
 
-`cache.nixos.org` 在国内拉取较慢，`just build` / `install` / `switch` 前建议在本机 `~/.config/nix/nix.conf` 加一条国内镜像：
+`flake.nix` 里配了上海交大镜像（`mirror.sjtu.edu.cn`）作为 substituter。第一次跑 `nix build` / `install` / `switch` 时 Nix 会问：
 
 ```
-extra-substituters = https://mirror.sjtu.edu.cn/nix-channels/store
+do you want to allow configuration setting 'substituters' ... (y/N)?
 ```
 
-也可以换成 TUNA、USTC、NJU 任意一个，挑最快的即可。**不建议写进仓库 `flake.nix`**：GitHub Actions 在境外，走 cache.nixos.org 更快，写进去反而拖慢 CI。
+答 `y` 接受即可，之后 SJTUG 永久生效。也可以一次性在 `~/.config/nix/nix.conf` 里加 `accept-flake-config = true` 省掉每次 prompt。
+
+境外用户不用接受，走 `cache.nixos.org` 默认更快。GitHub Actions 工作流已显式关掉 `accept-flake-config`，CI 构建走 cache.nixos.org 不受镜像影响。
 
 ## 开发
 
