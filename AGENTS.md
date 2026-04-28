@@ -1,70 +1,56 @@
 # AGENTS.md
 
-NixOS 透明代理网关（Mihomo + nftables TPROXY）。部署：qcow2 镜像 / nixos-anywhere；日常更新走 nixos-rebuild。
+NixOS module：单臂透明代理网关（Mihomo + nftables TPROXY）。
 
 ## 项目定位
 
-**单臂透明代理 appliance**：插入现有网络、把客户端网关指过来即可。
+**NixOS module，不是独立项目**。仓库提供 `nixosModules.{default,mihomo-gateway}`，由用户在自己的 flake 里 import 到一台 host 上。
 
 - 不是路由器，不做 NAT/DHCP/多接口
 - 不是通用 NixOS 配置框架，不追求可扩展性
-- 单用户 root，KISS 优先
+- 单用户 root appliance，KISS 优先
+
+## 模块边界
+
+**module 管什么**（mihomo 网关业务）：
+
+- `services.mihomo` + 订阅拉取/净化/合并/验证（`modules/mihomo.nix`）
+- nftables TPROXY 规则、策略路由、sysctl（`modules/tproxy.nix`）
+- 单臂 networking：`useNetworkd` + `useDHCP=false` + `firewall.enable=false` + 50-lan 匹配 `en* eth*`（含 `IPv4ReversePathFilter=no`）
+- resolved：`DNSStubListener=no` 避让 Mihomo DNS、`/etc/resolv.conf` 指向 resolved
+
+**host 管什么**（部署/身份相关，**module 不碰**）：
+
+- `networking.hostName`
+- `boot.loader.*` / `fileSystems.*` / disko
+- `system.stateVersion`
+- `services.openssh` / `users.users.*.openssh.authorizedKeys`
+- `time.timeZone` / `i18n.*` / `fonts.*`
+- `nix.settings.*`（experimental-features / substituters / channel.enable / nixPath 等）
+
+如果 host 已开 `services.resolved`，本 module 的 `settings.Resolve` attrset 会合并；如果 host 关掉 resolved，得自己保证 stub listener 不抢 53 且 `/etc/resolv.conf` 合理。
 
 ## 命令
 
-所有 flake 输出仅 `x86_64-linux`。
+flake 输出仅 `x86_64-linux`：
 
 ```bash
-just build       # 构建 qcow2 镜像 (vm profile)
-just install H   # nixos-anywhere 装 bare-metal 配置到目标机
-just switch H    # nixos-rebuild switch 更新已部署的 gateway
-just check       # nix flake check（构建 vm + bare-metal toplevel）
-just fmt         # nixfmt
-just update      # 更新 flake inputs
+nix flake check    # 用最小 host evaluate module
+nix fmt            # nixfmt
+nix flake update   # 更新 nixpkgs
 ```
 
-无测试套件。
+无测试套件。`checks.module` 用一个 minimal host（systemd-boot + tmpfs `/`）evaluate `nixosModules.default`，验集成不验镜像。
 
-## 架构约束
-
-### 模块分层
+## 模块结构
 
 ```
-modules/  - 平台无关
-  constants.nix / tproxy.nix / mihomo.nix / core.nix
-profiles/ - 平台适配
-  vm.nix          # qcow2 专用瘦身
-  bare-metal.nix  # 物理机 / nixos-anywhere
-  disko.nix       # 分区方案
+modules/
+  default.nix     # 入口，imports tproxy + mihomo + 单臂 networking + resolved
+  constants.nix   # 端口/fwmark/路由表，被 tproxy/mihomo 直接 import
+  tproxy.nix      # nftables / sysctl / networkd lo + routingPolicyRules
+  mihomo.nix      # services.mihomo + subscribe path/timer/service
 ```
-
-`modules/core.nix` = `imports tproxy + mihomo` + 通用 networking/ssh/resolved/timezone，**不绑任何平台假设**（无 fileSystems / 无 boot loader / 无 nix.enable 决策）。`profiles/*` 才能写这些硬编码。
-
-### 单臂代理 / Appliance 行为
-
-- **只拦截 transit（forward）流量**，不代理本机 OUTPUT。**不要加 OUTPUT 链**。
-- **`firewall.enable = false`** 是有意的，nftables 规则由 `modules/tproxy.nix` 直接管理。
-- **`external-controller = "0.0.0.0:9090"`** 是有意的，安全靠 `SECRET` 强制认证。
-- **不加 hardening**（`ProtectSystem`/`PrivateTmp` 等）：单用户 appliance 不需要。
-
-### qcow2 vs bare-metal 的差异
-
-| 项 | vm.nix | bare-metal.nix |
-|----|--------|----------------|
-| `profiles/minimal` | 加载 | 不加载 |
-| `profiles/headless` | 加载 | 不加载 |
-| `profiles/qemu-guest` | 加载 | 不加载 |
-| `boot.growPartition` | `true` | 不设 |
-| `boot.loader.efi.canTouchEfiVariables` | `false`（镜像构建无 efivarfs） | `true` |
-| `boot.kernelParams` 串口 | 设 | 不设 |
-| `fileSystems` | 硬编 by-label | 由 disko 生成 |
-| `services.qemuGuest.enable` | `true` | 不设 |
-
-**qcow2 体积敏感**，新增 vm profile 配置前先想下能不能砍。bare-metal 随意。
-
-`nix.enable` 在 `modules/core.nix` 里两种 profile 共用：纯 flake 工作流（`channel.enable = false`、`nixPath = []`），qcow2 因此也支持就地 `nixos-rebuild switch --flake`。
-
-## 模块关系
 
 `modules/constants.nix` 被 `tproxy.nix` 和 `mihomo.nix` 直接 `import`（不是 NixOS module options）。改端口/标记只需改 `constants.nix`，两边自动生效。
 
@@ -75,6 +61,13 @@ profiles/ - 平台适配
 | `dnsPort` | 1053 | Mihomo DNS |
 | `routingMark` | 6666 | fwmark |
 | `routingTable` | 100 | 策略路由表 |
+
+## 单臂 / Appliance 行为
+
+- **只拦截 transit（forward）流量**，不代理本机 OUTPUT。**不要加 OUTPUT 链**。
+- **`firewall.enable = false`** 是有意的，nftables 规则由 `modules/tproxy.nix` 直接管理。
+- **`external-controller = "0.0.0.0:9090"`** 是有意的，安全靠 `SECRET` 强制认证。
+- **不加 hardening**（`ProtectSystem`/`PrivateTmp` 等）：单用户 appliance 不需要。
 
 ## 订阅机制
 
@@ -91,6 +84,7 @@ profiles/ - 平台适配
 Fallback 配置通过 `systemd.tmpfiles.rules` 的 `C`（copy-if-absent）部署到 `config.yaml`，不走 preStart / activationScripts。
 
 关键规则：
+
 - 环境变量通过 systemd `EnvironmentFile=` 注入，**不要用 `source`**。
 - `SECRET` 必需（缺失 `exit 1`）；`CONFIG_URL` 缺失时 `exit 0`（首次部署尚未配置）。
 - 黑名单删除的键（`routing-mark`, `tun`, `listeners`, 各种 port, `allow-lan`, `bind-address`, `external-controller`, `secret`）**不可由订阅覆盖**。新增黑名单项加到 subscribe 脚本的 `del()` 链。
@@ -111,7 +105,7 @@ Fallback 配置通过 `systemd.tmpfiles.rules` 的 `C`（copy-if-absent）部署
 ## 代码风格
 
 - 注释只写**非显而易见的约束、陷阱或 WHY**（如 rp_filter、AF_NETLINK 为什么要改）。不要复述代码本身在做什么——代码就是注释。
-- Nix 格式化用 `nixfmt`（`just fmt`），RFC style。
+- Nix 格式化用 `nixfmt`（`nix fmt`），RFC style。
 
 ## 工具与资源
 
@@ -121,11 +115,3 @@ Fallback 配置通过 `systemd.tmpfiles.rules` 的 `C`（copy-if-absent）部署
 ## Commit 规范
 
 Conventional Commits，中文描述：`feat:` / `fix:` / `refactor:` / `docs:` / `chore:`。
-
-## CI
-
-`.github/workflows/release.yml`，仅 `workflow_dispatch` 手动触发：`just build` → 上传 qcow2 到 GitHub Release。
-
-## 镜像
-
-国内镜像只写在 `modules/core.nix` 的 `nix.settings.substituters`（SJTU 优先），即 gateway 自己 `nixos-rebuild switch` 时用。开发机 / CI / `just install|switch` 都走默认 cache.nixos.org——本机构建后 SCP 推送，目标机不 substitute（`--no-substitute-on-destination`）。
