@@ -8,7 +8,7 @@ NixOS module：单臂透明代理网关（Mihomo + nftables TPROXY）。
 
 - 不是路由器，不做 NAT/DHCP/多接口
 - 不是通用 NixOS 配置框架，不追求可扩展性
-- 单用户 root appliance，KISS 优先
+- 单用户 root 网关，KISS 优先
 
 ## 模块边界
 
@@ -62,12 +62,12 @@ modules/
 | `routingMark` | 6666 | fwmark |
 | `routingTable` | 100 | 策略路由表 |
 
-## 单臂 / Appliance 行为
+## 单臂网关行为
 
 - **只拦截 transit（forward）流量**，不代理本机 OUTPUT。**不要加 OUTPUT 链**。
 - **`firewall.enable = false`** 是有意的，nftables 规则由 `modules/tproxy.nix` 直接管理。
 - **`external-controller = "0.0.0.0:9090"`** 是有意的，安全靠 `SECRET` 强制认证。
-- **不加 hardening**（`ProtectSystem`/`PrivateTmp` 等）：单用户 appliance 不需要。
+- **不加 hardening**（`ProtectSystem`/`PrivateTmp` 等）：单用户网关不需要。
 
 ## 订阅机制
 
